@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"fmt"
-	mid "github.com/go-chi/chi/middleware"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"task-golang/model"
@@ -17,18 +16,21 @@ type userHandler struct {
 
 func UserHandler(router *mux.Router) *mux.Router {
 
-	router.Use(mid.Recoverer)
-	//router.Use(middleware.RequestParamsMiddleware)
-
 	h := &userHandler{
 		UserService: &service.UserService{
-			UserRepo: &repo.UserRepo{},
+			UserRepo:        &repo.UserRepo{},
+			PasswordChecker: &util.PasswordChecker{},
 		},
 	}
 
+	router.HandleFunc("/users/login", h.authenticate).Methods("POST")
 	router.HandleFunc("/users/register", h.register).Methods("POST")
 
 	return router
+}
+
+func (h *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
@@ -38,14 +40,14 @@ func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(dto)
 	errRegister := h.UserService.Register(r.Context(), dto)
 	if errRegister != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(errRegister.Code)
+		json.NewEncoder(w).Encode(errRegister)
 		return
 	}
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-
 }

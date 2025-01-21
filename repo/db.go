@@ -1,9 +1,11 @@
 package repo
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/go-pg/pg"
+	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
 	log "github.com/sirupsen/logrus"
@@ -13,7 +15,7 @@ import (
 
 var Db *pg.DB
 
-func InitDb() {
+func InitPostgresDb() {
 	Db = pg.Connect(&pg.Options{
 		Addr:        config.Props.DbHost + ":" + config.Props.DbPort,
 		User:        config.Props.DbUser,
@@ -55,4 +57,26 @@ func MigrateDb() error {
 	log.Info("Applied ", n, " migrations")
 	log.Info("MigrateDb.end")
 	return nil
+}
+
+func InitRedis() *redis.Client {
+	// Create a Redis client
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     config.Props.RedisHost + ":" + config.Props.RedisPort, // Redis server address
+		Password: "",                                                    // No password set
+		DB:       0,                                                     // Use default DB
+	})
+
+	// Create a context
+	ctx := context.Background()
+
+	// Test the connection
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("Could not connect to Redis: %v", err)
+	}
+
+	fmt.Println("Connected to Redis!")
+
+	return rdb
 }

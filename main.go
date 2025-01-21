@@ -1,6 +1,7 @@
 package main
 
 import (
+	mid "github.com/go-chi/chi/middleware"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
 	"github.com/joho/godotenv"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"task-golang/config"
 	"task-golang/handler"
+	"task-golang/middleware"
 	"task-golang/repo"
 )
 
@@ -43,14 +45,22 @@ func main() {
 	}
 
 	// This code connect to the db
-	repo.InitDb()
+	repo.InitPostgresDb()
+
+	redisClient := repo.InitRedis()
 
 	// This code initializes a new HTTP router using the Gorilla Mux package
 	router := mux.NewRouter()
+
+	// This line of code applies a middleware function called "Recoverer" from the "mid" package to the router.
+	router.Use(mid.Recoverer)
+
+	router.Use(middleware.AuthMiddleware(redisClient))
 	// sep application-specific handlers by calling the ApplicationHandler function with the router as an argument.
 	handler.UserHandler(router)
 
 	log.Info("Starting server at port: ", config.Props.Port)
+
 	// This code starts an HTTP server that listens on the specified port from the configuration properties and uses the provided router to handle incoming requests.
 	log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))
 }
