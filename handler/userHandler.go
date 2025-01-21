@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"task-golang/config"
 	"task-golang/model"
 	"task-golang/repo"
 	"task-golang/service"
@@ -23,8 +24,8 @@ func UserHandler(router *mux.Router) *mux.Router {
 		},
 	}
 
-	router.HandleFunc("/users/login", h.authenticate).Methods("POST")
-	router.HandleFunc("/users/register", h.register).Methods("POST")
+	router.HandleFunc(config.RootPath+"/users/login", h.authenticate).Methods("POST")
+	router.HandleFunc(config.RootPath+"/users/register", h.register).Methods("POST")
 
 	return router
 }
