@@ -106,6 +106,9 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			}
 		}
 
+		emailDto := util.GenerateActivationEmail(activationToken, model.Registration)
+
+		util.SendEmailAsync(emailDto.From, dto.Email, emailDto.Subject, emailDto.Body)
 	}
 
 	logger.Info("ActionLog.Register.success")

@@ -20,3 +20,12 @@ const (
 	ContextLogger       = "contextLogger"
 	ContextHeader       = "contextHeader"
 )
+
+type LinkType string
+
+const (
+	Registration   LinkType = "REGISTRATION"
+	ChangeEmail    LinkType = "CHANGE_EMAIL"
+	ForgetPassword LinkType = "FORGET_PASSWORD"
+	SetPassword    LinkType = "SET_PASSWORD"
+)

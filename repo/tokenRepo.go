@@ -76,35 +76,3 @@ func (tr TokenRepo) FindTokenByActivationToken(ctx context.Context, activationTo
 
 	return &token, nil
 }
-
-//func main() {
-//	ctx := context.Background()
-//
-//	// Example: Save a token without manually providing an ID
-//	token := &Token{
-//		Token:          uuid.New().String(), // Generate a unique token using UUID
-//		ActivationToken: uuid.New().String(), // Generate a unique activationToken using UUID
-//		UserID:         42,
-//		CreatedAt:      time.Now(),
-//		TTL:            3600, // 1 hour
-//	}
-//
-//	err := SaveToken(ctx, token)
-//	if err != nil {
-//		fmt.Println("Error saving token:", err)
-//		return
-//	}
-//	fmt.Printf("Token saved successfully! Generated ID: %s\n", token.ID)
-//
-//	// Example: Find token by activationToken
-//	retrievedToken, err := FindTokenByActivationToken(ctx, token.ActivationToken)
-//	if err != nil {
-//		fmt.Println("Error finding token by activationToken:", err)
-//		return
-//	}
-//	if retrievedToken == nil {
-//		fmt.Println("No token found for the given activationToken")
-//		return
-//	}
-//	fmt.Printf("Retrieved Token: %+v\n", retrievedToken)
-//}
