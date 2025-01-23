@@ -48,6 +48,7 @@ func (tu *TokenUtil) ReSetActivationToken(ctx context.Context, user *model.User,
 	}
 
 	if existingToken != nil {
+		tu.TokenRepo.DeleteToken(ctx, existingToken)
 		existingToken.ActivationToken = activationToken
 		tu.TokenRepo.SaveToken(ctx, existingToken)
 	} else {
@@ -55,7 +56,7 @@ func (tu *TokenUtil) ReSetActivationToken(ctx context.Context, user *model.User,
 			ActivationToken: activationToken,
 			UserID:          user.Id,
 			CreatedAt:       time.Now(),
-			TTL:             600, // 10 dakika
+			TTL:             600, // 10 min
 		}
 		tu.TokenRepo.SaveToken(ctx, tokenEntity)
 	}

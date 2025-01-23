@@ -15,6 +15,7 @@ type ITokenRepo interface {
 	SaveToken(ctx context.Context, token *model.Token) error
 	FindTokenByActivationToken(ctx context.Context, activationToken string) (*model.Token, error)
 	FindTokenByUserId(ctx context.Context, userId int64) (*model.Token, error)
+	DeleteToken(ctx context.Context, token *model.Token) error
 }
 
 type TokenRepo struct {
@@ -127,4 +128,40 @@ func (tr TokenRepo) FindTokenByUserId(ctx context.Context, userId int64) (*model
 	}
 
 	return &token, nil
+}
+
+// DeleteToken removes a token and its associated indexes from Redis
+func (tr TokenRepo) DeleteToken(ctx context.Context, token *model.Token) error {
+	if token == nil {
+		return fmt.Errorf("token cannot be nil")
+	}
+
+	// Construct Redis keys
+	primaryKey := fmt.Sprintf("tokens:%s", token.ID)
+	atIndexKey := fmt.Sprintf("activationTokenIndex:%s", token.ActivationToken)
+	uiIndexKey := fmt.Sprintf("userIdIndex:%d", token.UserID)
+	tokenIndexKey := fmt.Sprintf("tokenIndex:%s", token.Token)
+
+	// Start a Redis transaction to delete all keys atomically
+	pipe := RedisClient.TxPipeline()
+
+	// Delete the primary token key
+	pipe.Del(ctx, primaryKey)
+
+	// Delete secondary indexes
+	if token.ActivationToken != "" {
+		pipe.Del(ctx, atIndexKey)
+	}
+	pipe.Del(ctx, uiIndexKey)
+	if token.Token != "" {
+		pipe.Del(ctx, tokenIndexKey)
+	}
+
+	// Execute the pipeline
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("error deleting token and indexes from Redis: %w", err)
+	}
+
+	return nil
 }
