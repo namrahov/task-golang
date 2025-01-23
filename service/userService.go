@@ -2,7 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"net/http"
+	"task-golang/mapper"
 	"task-golang/model"
 	"task-golang/repo"
 	"task-golang/util"
@@ -18,8 +22,11 @@ type UserService struct {
 }
 
 func (us *UserService) Register(ctx context.Context, dto *model.UserRegistrationDto) *model.ErrorResponse {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.Register.start")
 
 	if !us.PasswordChecker.IsMiddleStrength(dto.Password) {
+		logger.Errorf("ActionLog.Register.error: password is weak")
 		return &model.ErrorResponse{
 			Error:   "PASSWORD_CHECK_EXCEPTION",
 			Message: "PASSWORD_SHOULD_HAS_MIN_8_SYMBOL_LOWERCASE_UPPERCASE_DIGIT",
@@ -27,6 +34,39 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 		}
 	}
 
+	user, errGetUser := us.UserRepo.GetUserByEmail(dto.Email)
+	if errGetUser != nil {
+		logger.Errorf("ActionLog.Register.error: cannot get user by email %v", dto.Email)
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.can't-get-user", model.Exception),
+			Message: errGetUser.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	activationToken := util.GenerateToken()
+
+	if user == nil {
+		buildUser, errBuildUser := mapper.BuildUser(ctx, dto)
+
+		if errBuildUser != nil {
+			logger.Errorf("ActionLog.Register.error: cannot build user")
+			return errBuildUser
+		}
+
+		savedUser, errSaveUser := us.UserRepo.SaveUser(buildUser)
+		if errSaveUser != nil {
+
+		}
+		us.UserRepo.AddRolesToUser(savedUser.Id, []*model.Role{
+			&model.Role{
+				Id:   savedUser.Id,
+				Name:
+			}
+		})
+	}
+
+	logger.Info("ActionLog.Register.success")
 	/*
 	  if (!PasswordStrengthChecker.isMiddleStrength(dto.getPassword())) {
 	            throw new UnavailableException("PASSWORD_SHOULD_HAS_MIN_8_SYMBOL_LOWERCASE_UPPERCASE_DIGIT");

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"task-golang/config"
@@ -43,9 +42,7 @@ func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
 
 	errRegister := h.UserService.Register(r.Context(), dto)
 	if errRegister != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(errRegister.Code)
-		json.NewEncoder(w).Encode(errRegister)
+		util.ErrorRespondWriterJSON(w, errRegister)
 		return
 	}
 
