@@ -17,6 +17,7 @@ type IUserService interface {
 
 type UserService struct {
 	UserRepo        repo.IUserRepo
+	TokenRepo       repo.ITokenRepo
 	PasswordChecker util.IPasswordChecker
 }
 
@@ -42,7 +43,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			Code:    http.StatusNotFound,
 		}
 	}
-	//activationToken := util.GenerateToken()
+	activationToken := util.GenerateToken()
 
 	if user == nil {
 		buildUser, errBuildUser := mapper.BuildUser(ctx, dto)
@@ -75,6 +76,16 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 				Code:    http.StatusForbidden,
 			}
 		}
+
+		errSaveToken := us.TokenRepo.SaveToken(ctx, mapper.BuildActivationToken(activationToken, savedUser.Id))
+		if errSaveToken != nil {
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.can't-save-activation-token", model.Exception),
+				Message: errSaveToken.Error(),
+				Code:    http.StatusForbidden,
+			}
+		}
+
 	}
 
 	logger.Info("ActionLog.Register.success")

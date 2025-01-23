@@ -19,6 +19,7 @@ func UserHandler(router *mux.Router) *mux.Router {
 	h := &userHandler{
 		UserService: &service.UserService{
 			UserRepo:        &repo.UserRepo{},
+			TokenRepo:       &repo.TokenRepo{},
 			PasswordChecker: &util.PasswordChecker{},
 		},
 	}

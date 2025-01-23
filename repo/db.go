@@ -14,6 +14,7 @@ import (
 )
 
 var Db *pg.DB
+var RedisClient *redis.Client
 
 func InitPostgresDb() {
 	Db = pg.Connect(&pg.Options{
@@ -61,7 +62,7 @@ func MigrateDb() error {
 
 func InitRedis() *redis.Client {
 	// Create a Redis client
-	rdb := redis.NewClient(&redis.Options{
+	RedisClient := redis.NewClient(&redis.Options{
 		Addr:     config.Props.RedisHost + ":" + config.Props.RedisPort, // Redis server address
 		Password: "",                                                    // No password set
 		DB:       0,                                                     // Use default DB
@@ -71,12 +72,12 @@ func InitRedis() *redis.Client {
 	ctx := context.Background()
 
 	// Test the connection
-	_, err := rdb.Ping(ctx).Result()
+	_, err := RedisClient.Ping(ctx).Result()
 	if err != nil {
 		log.Fatalf("Could not connect to Redis: %v", err)
 	}
 
 	fmt.Println("Connected to Redis!")
 
-	return rdb
+	return RedisClient
 }
