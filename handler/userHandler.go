@@ -21,6 +21,9 @@ func UserHandler(router *mux.Router) *mux.Router {
 			UserRepo:        &repo.UserRepo{},
 			TokenRepo:       &repo.TokenRepo{},
 			PasswordChecker: &util.PasswordChecker{},
+			TokenUtil: &util.TokenUtil{
+				TokenRepo: &repo.TokenRepo{},
+			},
 		},
 	}
 

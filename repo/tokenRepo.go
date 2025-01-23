@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	"strconv"
 	"task-golang/model"
 	"time"
 )
@@ -13,6 +14,7 @@ import (
 type ITokenRepo interface {
 	SaveToken(ctx context.Context, token *model.Token) error
 	FindTokenByActivationToken(ctx context.Context, activationToken string) (*model.Token, error)
+	FindTokenByUserId(ctx context.Context, userId int64) (*model.Token, error)
 }
 
 type TokenRepo struct {
@@ -39,10 +41,24 @@ func (tr TokenRepo) SaveToken(ctx context.Context, token *model.Token) error {
 	}
 
 	// Save activationToken to secondary index
-	indexKey := fmt.Sprintf("activationTokenIndex:%s", token.ActivationToken)
-	err = RedisClient.Set(ctx, indexKey, token.ID, time.Duration(token.TTL)*time.Second).Err()
+	atIndexKey := fmt.Sprintf("activationTokenIndex:%s", token.ActivationToken)
+	err = RedisClient.Set(ctx, atIndexKey, token.ID, time.Duration(token.TTL)*time.Second).Err()
 	if err != nil {
 		return fmt.Errorf("error saving activationToken index to Redis: %w", err)
+	}
+
+	// Save userId to secondary index
+	uiIndexKey := fmt.Sprintf("userIdIndex:%s", strconv.FormatInt(token.UserID, 10))
+	err = RedisClient.Set(ctx, uiIndexKey, token.ID, time.Duration(token.TTL)*time.Second).Err()
+	if err != nil {
+		return fmt.Errorf("error saving userId index to Redis: %w", err)
+	}
+
+	// Save token to secondary index
+	tokenIndexKey := fmt.Sprintf("tokenIndex:%s", token.Token)
+	err = RedisClient.Set(ctx, tokenIndexKey, token.ID, time.Duration(token.TTL)*time.Second).Err()
+	if err != nil {
+		return fmt.Errorf("error saving token index to Redis: %w", err)
 	}
 
 	return nil
@@ -66,6 +82,43 @@ func (tr TokenRepo) FindTokenByActivationToken(ctx context.Context, activationTo
 		return nil, nil // Token not found
 	} else if err != nil {
 		return nil, fmt.Errorf("error retrieving token from Redis: %w", err)
+	}
+
+	var token model.Token
+	err = json.Unmarshal([]byte(data), &token)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling token: %w", err)
+	}
+
+	return &token, nil
+}
+
+func (tr TokenRepo) FindTokenByUserId(ctx context.Context, userId int64) (*model.Token, error) {
+	fmt.Println("llllllllllllllll")
+	indexKey := fmt.Sprintf("userIdIndex:%s", strconv.FormatInt(userId, 10))
+	tokenID, err := RedisClient.Get(ctx, indexKey).Result()
+	if err == redis.Nil {
+		fmt.Println("No token ID found for user")
+		return nil, nil // Token not found
+	} else if err != nil {
+		return nil, fmt.Errorf("error retrieving token ID from Redis: %w", err)
+	}
+
+	if tokenID == "" {
+		return nil, fmt.Errorf("empty token ID for user ID: %d", userId)
+	}
+
+	key := fmt.Sprintf("tokens:%s", tokenID)
+	data, err := RedisClient.Get(ctx, key).Result()
+	if err == redis.Nil {
+		fmt.Println("No token data found for token ID")
+		return nil, nil // Token not found
+	} else if err != nil {
+		return nil, fmt.Errorf("error retrieving token from Redis: %w", err)
+	}
+
+	if data == "" {
+		return nil, fmt.Errorf("empty token data for token ID: %s", tokenID)
 	}
 
 	var token model.Token

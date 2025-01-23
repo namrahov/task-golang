@@ -19,6 +19,7 @@ type UserService struct {
 	UserRepo        repo.IUserRepo
 	TokenRepo       repo.ITokenRepo
 	PasswordChecker util.IPasswordChecker
+	TokenUtil       util.ITokenUtil
 }
 
 func (us *UserService) Register(ctx context.Context, dto *model.UserRegistrationDto) *model.ErrorResponse {
@@ -43,7 +44,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			Code:    http.StatusNotFound,
 		}
 	}
-	activationToken := util.GenerateToken()
+	activationToken := us.TokenUtil.GenerateToken()
 
 	tx, errBeginTransaction := us.UserRepo.BeginTransaction()
 	if errBeginTransaction != nil {
@@ -107,40 +108,36 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 		}
 
 		emailDto := util.GenerateActivationEmail(activationToken, model.Registration)
-
 		util.SendEmailAsync(emailDto.From, dto.Email, emailDto.Subject, emailDto.Body)
+	} else {
+		if user.IsActive == true {
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.user_exist", model.Exception),
+				Message: "User exist",
+				Code:    http.StatusForbidden,
+			}
+		}
+
+		if user.InactivatedDate != "" {
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.user_is_inactive", model.Exception),
+				Message: "User is inactive",
+				Code:    http.StatusForbidden,
+			}
+		}
+
+		us.TokenUtil.ReSetActivationToken(ctx, user, activationToken)
+
+		emailDto := util.GenerateActivationEmail(activationToken, model.Registration)
+		util.SendEmailAsync(emailDto.From, dto.Email, emailDto.Subject, emailDto.Body)
+
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.user_is_inactive", model.Exception),
+			Message: "User is inactive",
+			Code:    http.StatusForbidden,
+		}
 	}
 
 	logger.Info("ActionLog.Register.success")
-	/*
-	  if (!PasswordStrengthChecker.isMiddleStrength(dto.getPassword())) {
-	            throw new UnavailableException("PASSWORD_SHOULD_HAS_MIN_8_SYMBOL_LOWERCASE_UPPERCASE_DIGIT");
-	        }
-
-	        List<User> userEntities = userUtil.findUserByEmail(dto.getEmail());
-	        String activationToken = tokenUtil.generateToken();
-	        User user;
-
-	        if (userEntities.isEmpty()) {
-	            user = userRepository.save(userUtil.buildUser(dto, false));
-
-	            tokenService.saveToken(tokenMapper.toToken(activationToken, user.getId()));
-
-	            EmailDto emailDto = emailUtil.generateActivationEmail(activationToken, REGISTRATION);
-	            emailUtil.send(emailDto.getFrom(), dto.getEmail(), emailDto.getSubject(), emailDto.getBody());
-	        } else {
-	            user = userEntities.getFirst();
-
-	            if (Boolean.TRUE.equals(user.getIsActive())) throw new UserRegisterException("USER_ALREADY_EXIST");
-	            if (user.getInactivatedDate() != null) throw new UserRegisterException("USER_IS_INACTIVE");
-
-	            tokenService.reSetActivationToken(user, activationToken);
-
-	            EmailDto emailDto = emailUtil.generateActivationEmail(activationToken, REGISTRATION);
-	            emailUtil.send(emailDto.getFrom(), dto.getEmail(), emailDto.getSubject(), emailDto.getBody());
-
-	            throw new UserRegisterException("ACTIVATION_EMAIL_HAS_SENT");
-	        }
-	*/
 	return nil
 }

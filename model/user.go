@@ -9,7 +9,7 @@ type User struct {
 	Password           []byte  `sql:"password" json:"-"`
 	PhoneNumber        string  `sql:"phone_number" json:"phoneNumber"`
 	AcceptNotification bool    `sql:"accept_notification" json:"acceptNotification,omitempty"`
-	IsActive           bool    `sql:"is_active" json:"isActive"`
+	IsActive           bool    `sql:"is_active, use_zero" json:"isActive"`
 	InactivatedDate    string  `sql:"inactivated_date" json:"inactivatedDate,omitempty"`
 	FullName           string  `sql:"full_name" json:"fullName"`
 	Description        string  `sql:"description" json:"description"`
