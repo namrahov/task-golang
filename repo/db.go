@@ -62,7 +62,7 @@ func MigrateDb() error {
 
 func InitRedis() *redis.Client {
 	// Create a Redis client
-	RedisClient := redis.NewClient(&redis.Options{
+	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     config.Props.RedisHost + ":" + config.Props.RedisPort, // Redis server address
 		Password: "",                                                    // No password set
 		DB:       0,                                                     // Use default DB
