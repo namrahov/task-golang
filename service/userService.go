@@ -45,6 +45,26 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 	}
 	activationToken := util.GenerateToken()
 
+	tx, errBeginTransaction := us.UserRepo.BeginTransaction()
+	if errBeginTransaction != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.transaction-begin-failed", model.Exception),
+			Message: errBeginTransaction.Error(),
+			Code:    http.StatusInternalServerError,
+		}
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback() // Rollback on panic
+			panic(p)
+		} else if errBeginTransaction != nil {
+			tx.Rollback() // Rollback on error
+		} else {
+			errBeginTransaction = tx.Commit() // Commit if no error
+		}
+	}()
+
 	if user == nil {
 		buildUser, errBuildUser := mapper.BuildUser(ctx, dto)
 
@@ -53,7 +73,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			return errBuildUser
 		}
 
-		savedUser, errSaveUser := us.UserRepo.SaveUser(buildUser)
+		savedUser, errSaveUser := us.UserRepo.SaveUser(tx, buildUser)
 
 		if errSaveUser != nil {
 			return &model.ErrorResponse{
@@ -62,7 +82,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 				Code:    http.StatusForbidden,
 			}
 		}
-		errAddUserRole := us.UserRepo.AddRolesToUser(savedUser.Id, []*model.Role{
+		errAddUserRole := us.UserRepo.AddRolesToUser(tx, savedUser.Id, []*model.Role{
 			{
 				Id:   1,
 				Name: "user",
