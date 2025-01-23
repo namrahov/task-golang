@@ -94,7 +94,6 @@ func (tr TokenRepo) FindTokenByActivationToken(ctx context.Context, activationTo
 }
 
 func (tr TokenRepo) FindTokenByUserId(ctx context.Context, userId int64) (*model.Token, error) {
-	fmt.Println("llllllllllllllll")
 	indexKey := fmt.Sprintf("userIdIndex:%s", strconv.FormatInt(userId, 10))
 	tokenID, err := RedisClient.Get(ctx, indexKey).Result()
 	if err == redis.Nil {

@@ -48,11 +48,9 @@ func (tu *TokenUtil) ReSetActivationToken(ctx context.Context, user *model.User,
 	}
 
 	if existingToken != nil {
-		fmt.Println("isledi1", existingToken)
 		existingToken.ActivationToken = activationToken
 		tu.TokenRepo.SaveToken(ctx, existingToken)
 	} else {
-		fmt.Println("isledi2")
 		tokenEntity := &model.Token{
 			ActivationToken: activationToken,
 			UserID:          user.Id,
