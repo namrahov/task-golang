@@ -21,7 +21,6 @@ type TokenRepo struct {
 // SaveToken saves a token to Redis with TTL
 func (tr TokenRepo) SaveToken(ctx context.Context, token *model.Token) error {
 	// Auto-generate ID if not provided
-	fmt.Println("islediiii")
 	if token.ID == "" {
 		token.ID = uuid.New().String() // Generate a unique UUID
 	}
@@ -32,7 +31,7 @@ func (tr TokenRepo) SaveToken(ctx context.Context, token *model.Token) error {
 	if err != nil {
 		return fmt.Errorf("error marshalling token: %w", err)
 	}
-	fmt.Println("islediiii2")
+
 	// Save token to Redis with TTL
 	err = RedisClient.Set(ctx, key, tokenData, time.Duration(token.TTL)*time.Second).Err()
 	if err != nil {
@@ -40,14 +39,11 @@ func (tr TokenRepo) SaveToken(ctx context.Context, token *model.Token) error {
 	}
 
 	// Save activationToken to secondary index
-	fmt.Println("islediiii3")
-
 	indexKey := fmt.Sprintf("activationTokenIndex:%s", token.ActivationToken)
 	err = RedisClient.Set(ctx, indexKey, token.ID, time.Duration(token.TTL)*time.Second).Err()
 	if err != nil {
 		return fmt.Errorf("error saving activationToken index to Redis: %w", err)
 	}
-	fmt.Println("islediiii4")
 
 	return nil
 }

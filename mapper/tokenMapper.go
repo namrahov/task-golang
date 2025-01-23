@@ -12,7 +12,7 @@ func BuildActivationToken(activationToken string, userId int64) *model.Token {
 		ActivationToken: activationToken,
 		UserID:          userId,
 		CreatedAt:       time.Now(),
-		TTL:             15, // 15 sec
+		TTL:             3600, // 1 hour
 	}
 
 	return token
