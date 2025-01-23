@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -43,8 +42,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			Code:    http.StatusNotFound,
 		}
 	}
-
-	activationToken := util.GenerateToken()
+	//activationToken := util.GenerateToken()
 
 	if user == nil {
 		buildUser, errBuildUser := mapper.BuildUser(ctx, dto)
@@ -55,15 +53,28 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 		}
 
 		savedUser, errSaveUser := us.UserRepo.SaveUser(buildUser)
-		if errSaveUser != nil {
 
-		}
-		us.UserRepo.AddRolesToUser(savedUser.Id, []*model.Role{
-			&model.Role{
-				Id:   savedUser.Id,
-				Name:
+		if errSaveUser != nil {
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.can't-save-user", model.Exception),
+				Message: errSaveUser.Error(),
+				Code:    http.StatusForbidden,
 			}
+		}
+		errAddUserRole := us.UserRepo.AddRolesToUser(savedUser.Id, []*model.Role{
+			{
+				Id:   1,
+				Name: "user",
+			},
 		})
+
+		if errAddUserRole != nil {
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.can't-add-user-role", model.Exception),
+				Message: errAddUserRole.Error(),
+				Code:    http.StatusForbidden,
+			}
+		}
 	}
 
 	logger.Info("ActionLog.Register.success")

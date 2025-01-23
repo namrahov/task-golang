@@ -1,12 +1,14 @@
 package repo
 
 import (
+	"github.com/go-pg/pg"
 	"task-golang/model"
 )
 
 type IUserRepo interface {
 	GetUserByEmail(email string) (*model.User, error)
 	SaveUser(user *model.User) (*model.User, error)
+	AddRolesToUser(userId int64, roles []*model.Role) error
 }
 
 type UserRepo struct {
@@ -20,6 +22,12 @@ func (r UserRepo) GetUserByEmail(email string) (*model.User, error) {
 		Select()
 
 	if err != nil {
+		// Check if no rows were found
+		if err == pg.ErrNoRows {
+			// Return nil user and no error
+			return nil, nil
+		}
+		// Return any other error
 		return nil, err
 	}
 

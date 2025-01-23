@@ -4,7 +4,7 @@ type User struct {
 	tableName struct{} `sql:"users" pg:",discard_unknown_columns"`
 
 	Id                 int64   `sql:"id"  json:"id"`
-	UserName           string  `sql:"user_name" json:"userName"`
+	UserName           string  `sql:"username" json:"userName"`
 	Email              string  `sql:"email" json:"email"`
 	Password           []byte  `sql:"password" json:"-"`
 	PhoneNumber        string  `sql:"phone_number" json:"phoneNumber"`
