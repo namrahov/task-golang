@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt/v4"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"task-golang/mapper"
 	"task-golang/model"
@@ -191,35 +193,62 @@ func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestD
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.Authenticate.start")
 
+	// Find user by email or username
 	user, errFindUser := us.UserRepo.FindActiveUserByEmailOrUsername(dto.EmailOrNickname)
-	if errFindUser != nil {
+	if errFindUser != nil || user == nil {
 		return nil, &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.user_not_found", model.Exception),
-			Message: "Can not find user",
+			Message: "Cannot find user",
 			Code:    http.StatusForbidden,
 		}
 	}
 
-	if user == nil {
-		return nil, &model.ErrorResponse{
-			Error:   fmt.Sprintf("%s.user_not_found", model.Exception),
-			Message: "Can not find user",
-			Code:    http.StatusForbidden,
-		}
-	}
-
-	fmt.Println(len(user.Roles))
-	err := us.activateIfInactiveLess30Days(user)
+	// Check password
+	err := bcrypt.CompareHashAndPassword(user.Password, []byte(dto.Password))
 	if err != nil {
-		return nil, nil
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.invalid_credentials", model.Exception),
+			Message: "Invalid email/username or password",
+			Code:    http.StatusForbidden,
+		}
 	}
 
-	jwtToken := model.JwtToken{
-		"s",
+	// Activate user if inactive less than 30 days
+	err = us.activateIfInactiveLess30Days(user)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.activation_failed", model.Exception),
+			Message: "Failed to activate user",
+			Code:    http.StatusInternalServerError,
+		}
+	}
+
+	// Generate JWT Token
+	claims := jwt.MapClaims{
+		"user_id": user.Id,
+		"roles":   user.Roles,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// Sign the token with a secret key
+	secretKey := "your_secret_key_here" // Replace with your secure key
+	signedToken, err := token.SignedString([]byte(secretKey))
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.token_generation_failed", model.Exception),
+			Message: "Failed to generate token",
+			Code:    http.StatusInternalServerError,
+		}
+	}
+
+	// Prepare the response
+	jwtToken := &model.JwtToken{
+		Token: signedToken,
 	}
 
 	logger.Info("ActionLog.Authenticate.end")
-	return &jwtToken, nil
+	return jwtToken, nil
 }
 
 // ActivateIfInactiveLess30Days activates a user if inactive for less than 30 days
