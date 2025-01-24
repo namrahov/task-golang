@@ -10,7 +10,7 @@ type User struct {
 	PhoneNumber        string  `sql:"phone_number" json:"phoneNumber"`
 	AcceptNotification bool    `sql:"accept_notification" json:"acceptNotification,omitempty"`
 	IsActive           bool    `sql:"is_active, use_zero" json:"isActive"`
-	InactivatedDate    string  `sql:"inactivated_date" json:"inactivatedDate,omitempty"`
+	InactivatedDate    *string `sql:"inactivated_date" json:"inactivatedDate,omitempty"`
 	FullName           string  `sql:"full_name" json:"fullName"`
 	Description        string  `sql:"description" json:"description"`
 	Roles              []*Role `pg:"many2many:users_roles,joinFK:user_id" json:"roles"`
@@ -34,4 +34,8 @@ type AuthRequestDto struct {
 	EmailOrNickname string `json:"emailOrNickname"`
 	Password        string `json:"password"`
 	RememberMe      bool   `json:"rememberMe"`
+}
+
+type JwtToken struct {
+	Token string `json:"token"`
 }

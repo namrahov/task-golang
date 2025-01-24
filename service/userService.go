@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -9,11 +10,13 @@ import (
 	"task-golang/model"
 	"task-golang/repo"
 	"task-golang/util"
+	"time"
 )
 
 type IUserService interface {
 	Register(ctx context.Context, userRegistrationDto *model.UserRegistrationDto) *model.ErrorResponse
 	Active(ctx context.Context, token string) *model.ErrorResponse
+	Authenticate(ctx context.Context, dto *model.AuthRequestDto) (*model.JwtToken, *model.ErrorResponse)
 }
 
 type UserService struct {
@@ -119,7 +122,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			}
 		}
 
-		if user.InactivatedDate != "" {
+		if user.InactivatedDate != nil {
 			return &model.ErrorResponse{
 				Error:   fmt.Sprintf("%s.user_is_inactive", model.Exception),
 				Message: "User is inactive",
@@ -181,5 +184,69 @@ func (us *UserService) Active(ctx context.Context, token string) *model.ErrorRes
 	}
 
 	logger.Info("ActionLog.Active.end")
+	return nil
+}
+
+func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestDto) (*model.JwtToken, *model.ErrorResponse) {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.Authenticate.start")
+
+	user, errFindUser := us.UserRepo.FindActiveUserByEmailOrUsername(dto.EmailOrNickname)
+	if errFindUser != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.user_not_found", model.Exception),
+			Message: "Can not find user",
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	if user == nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.user_not_found", model.Exception),
+			Message: "Can not find user",
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	fmt.Println(len(user.Roles))
+	err := us.activateIfInactiveLess30Days(user)
+	if err != nil {
+		return nil, nil
+	}
+
+	jwtToken := model.JwtToken{
+		"s",
+	}
+
+	logger.Info("ActionLog.Authenticate.end")
+	return &jwtToken, nil
+}
+
+// ActivateIfInactiveLess30Days activates a user if inactive for less than 30 days
+func (us *UserService) activateIfInactiveLess30Days(user *model.User) error {
+	if !user.IsActive {
+		if user.InactivatedDate != nil {
+			// Parse the inactivated date
+			inactivatedTime, err := time.Parse("2006-01-02", *user.InactivatedDate)
+			if err != nil {
+				return errors.New("invalid inactivated date format")
+			}
+
+			// Check if the inactivated date is within the last 30 days
+			if inactivatedTime.After(time.Now().AddDate(0, 0, -30)) {
+				user.IsActive = true
+				user.InactivatedDate = nil
+				_, err := us.UserRepo.UpdateUser(user)
+				if err != nil {
+					return err
+				}
+				return err
+			} else {
+				return errors.New("USER_IS_INACTIVE")
+			}
+		} else {
+			return errors.New("USER_IS_INACTIVE")
+		}
+	}
 	return nil
 }

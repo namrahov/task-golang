@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -36,7 +37,21 @@ func UserHandler(router *mux.Router) *mux.Router {
 }
 
 func (h *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
+	var dto *model.AuthRequestDto
+	err := util.DecodeBody(w, r, &dto)
+	if err != nil {
+		return
+	}
 
+	jwtToken, errLogin := h.UserService.Authenticate(r.Context(), dto)
+	if errLogin != nil {
+		util.ErrorRespondWriterJSON(w, errLogin)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(jwtToken)
 }
 
 func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {

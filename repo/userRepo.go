@@ -13,6 +13,7 @@ type IUserRepo interface {
 	AddRolesToUser(tx *pg.Tx, userId int64, roles []*model.Role) error
 	FindUserById(id int64) (*model.User, error)
 	UpdateUser(user *model.User) (*model.User, error)
+	FindActiveUserByEmailOrUsername(EmailOrNickname string) (*model.User, error)
 }
 
 type UserRepo struct {
@@ -96,4 +97,24 @@ func (r UserRepo) AddRolesToUser(tx *pg.Tx, userId int64, roles []*model.Role) e
 	}
 	_, err := tx.Model(&userRoles).Insert()
 	return err
+}
+
+func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*model.User, error) {
+	var user model.User
+	err := Db.Model(&user).
+		Relation("Roles"). // Fetch related Roles
+		Where("(email = ? OR username = ?) AND is_active = ?", emailOrNickname, emailOrNickname, true).
+		Select()
+
+	if err != nil {
+		// Check if no rows were found
+		if err == pg.ErrNoRows {
+			// Return nil user and no error
+			return nil, nil
+		}
+		// Return any other error
+		return nil, err
+	}
+
+	return &user, nil
 }
