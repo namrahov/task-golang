@@ -22,6 +22,7 @@ type Args struct {
 	UserFrom          string    `arg:"env:USER_FROM,required"`
 	UserPassword      string    `arg:"env:USER_PASSWORD,required"`
 	UserActivationUrl string    `arg:"env:USER_ACTIVATION_URL,required"`
+	JwtSecret         string    `arg:"env:JWT_SECRET,required"`
 }
 
 var Props Args

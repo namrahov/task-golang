@@ -21,6 +21,13 @@ const (
 	ContextHeader       = "contextHeader"
 )
 
+type ContextKey string
+
+const (
+	ContextUserID    ContextKey = "userID"
+	ContextUserRoles ContextKey = "userRoles"
+)
+
 type LinkType string
 
 const (

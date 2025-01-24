@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"task-golang/config"
 	"task-golang/mapper"
 	"task-golang/model"
 	"task-golang/repo"
@@ -19,6 +20,7 @@ type IUserService interface {
 	Register(ctx context.Context, userRegistrationDto *model.UserRegistrationDto) *model.ErrorResponse
 	Active(ctx context.Context, token string) *model.ErrorResponse
 	Authenticate(ctx context.Context, dto *model.AuthRequestDto) (*model.JwtToken, *model.ErrorResponse)
+	//CheckPermission(roles []string, requestURI, httpMethod string) bool
 }
 
 type UserService struct {
@@ -224,6 +226,9 @@ func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestD
 	}
 
 	// Generate JWT Token
+	for _, userRole := range user.Roles {
+		fmt.Println(userRole)
+	}
 	claims := jwt.MapClaims{
 		"user_id": user.Id,
 		"roles":   user.Roles,
@@ -232,8 +237,8 @@ func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestD
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with a secret key
-	secretKey := "your_secret_key_here" // Replace with your secure key
-	signedToken, err := token.SignedString([]byte(secretKey))
+	//secretKey := "your_secret_key_here" // Replace with your secure key
+	signedToken, err := token.SignedString([]byte(config.Props.JwtSecret))
 	if err != nil {
 		return nil, &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.token_generation_failed", model.Exception),
@@ -279,3 +284,19 @@ func (us *UserService) activateIfInactiveLess30Days(user *model.User) error {
 	}
 	return nil
 }
+
+//func (us *UserService) CheckPermission(roles []string, requestURI, httpMethod string) bool {
+//	permissions, err := us.UserRepo.GetPermissions(roles)
+//	if err != nil {
+//		log.Errorf("Error fetching permissions: %v", err)
+//		return false
+//	}
+//
+//	// Check if the request URI and method match any of the permissions
+//	for _, permission := range permissions {
+//		if permission.Url == requestURI && strings.EqualFold(permission.HttpMethod, httpMethod) {
+//			return true
+//		}
+//	}
+//	return false
+//}

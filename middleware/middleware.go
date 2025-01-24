@@ -2,14 +2,17 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
+	"task-golang/config"
 	"task-golang/model"
+	"task-golang/repo"
 )
-
-type key string
 
 var headers = []string{
 	"x-request-id",
@@ -26,9 +29,16 @@ var headers = []string{
 	"requestid",
 }
 
+// Define the whitelist
+var whitelist = map[string][]string{
+	"GET":  {"/v1/users/active"},
+	"POST": {"/v1/users/login", "/v1/users/register"},
+}
+
 func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("siledi0")
 			ctx := r.Context()
 
 			requestID := r.Header.Get(model.HeaderKeyRequestID)
@@ -56,9 +66,82 @@ func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 				header.Add(v, r.Header.Get(v))
 			}
 
+			// Check if the request URL and method are in the whitelist
+			fmt.Println("isledi1", r.Method, " url = ", r.URL.Path)
+			if isWhitelisted(r.Method, r.URL.Path) {
+				// Proceed to the next handler
+				ctx = context.WithValue(ctx, model.ContextLogger, logger)
+				ctx = context.WithValue(ctx, model.ContextHeader, header)
+				fmt.Println("isledi2")
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
+			fmt.Println("isledi3")
+			// Extract Authorization Header
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			fmt.Println("isledi4")
+			// Extract Token
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+			fmt.Println("isledi5")
+			// Parse and Validate JWT Token
+			token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				}
+				return []byte(config.Props.JwtSecret), nil
+			})
+
+			fmt.Println("isledi6")
+			if err != nil || !token.Valid {
+				http.Error(w, "Unauthorized: Invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			fmt.Println("isledi7")
+			// Extract Claims
+			claims, ok := token.Claims.(jwt.MapClaims)
+			if !ok || claims["user_id"] == nil || claims["roles"] == nil {
+				http.Error(w, "Unauthorized: Invalid claims", http.StatusUnauthorized)
+				return
+			}
+
+			userId := int64(claims["user_id"].(float64))
+			roles := claims["roles"].([]interface{})
+
+			fmt.Println("isledi9")
+			userRoles := make([]string, 0, len(roles)) // Initialize with capacity but flexible length
+			for i, role := range roles {
+				fmt.Println("isledi10role=", role)
+				if strRole, ok := role.(string); ok {
+					userRoles = append(userRoles, strRole)
+				} else {
+					fmt.Printf("role at index %d is not a string: %v\n", i, role)
+				}
+			}
+
+			fmt.Println("isledi10")
+			hasPermission := checkPermission(userRoles, r.RequestURI, r.Method)
+			if !hasPermission {
+				http.Error(w, "Forbidden: You do not have access to this resource", http.StatusForbidden)
+				return
+			}
+
+			fmt.Println("isledi11")
+			// Add User Info to Context
+			ctx = context.WithValue(ctx, model.ContextUserID, userId)
+			ctx = context.WithValue(ctx, model.ContextUserRoles, userRoles)
+
 			ctx = context.WithValue(ctx, model.ContextLogger, logger)
 			ctx = context.WithValue(ctx, model.ContextHeader, header)
 
+			fmt.Println("isledi12")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -68,4 +151,39 @@ func addLoggerParam(fields log.Fields, field string, value string) {
 	if len(value) > 0 {
 		fields[field] = value
 	}
+}
+
+func checkPermission(roles []string, requestURI, httpMethod string) bool {
+	var permissions []*model.Permission
+	err := repo.Db.Model(&model.Permission{}).
+		Join("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
+		Join("JOIN roles r ON r.id = rp.role_id").
+		Where("r.name IN (?)", roles).
+		Select(&permissions)
+	if err != nil {
+		log.Errorf("Error fetching permissions: %v", err)
+		return false
+	}
+
+	// Check if the request URI and method match any of the permissions
+	for _, permission := range permissions {
+		if permission.Url == requestURI && strings.EqualFold(permission.HttpMethod, httpMethod) {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper function to check if the method and URL are in the whitelist
+func isWhitelisted(method, url string) bool {
+	allowedURLs, exists := whitelist[method]
+	if !exists {
+		return false
+	}
+	for _, allowedURL := range allowedURLs {
+		if allowedURL == url {
+			return true
+		}
+	}
+	return false
 }

@@ -14,6 +14,7 @@ type IUserRepo interface {
 	FindUserById(id int64) (*model.User, error)
 	UpdateUser(user *model.User) (*model.User, error)
 	FindActiveUserByEmailOrUsername(EmailOrNickname string) (*model.User, error)
+	//GetPermissions(roles []string) ([]*model.Permission, error)
 }
 
 type UserRepo struct {
@@ -118,3 +119,19 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 
 	return &user, nil
 }
+
+//func (r UserRepo) GetPermissions(roles []string) ([]*model.Permission, error) {
+//	// Fetch permissions for the user's roles
+//	var permissions []*model.Permission
+//	err := Db.Model(&model.Permission{}).
+//		Join("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
+//		Join("JOIN roles r ON r.id = rp.role_id").
+//		Where("r.name IN (?)", roles).
+//		Select(&permissions)
+//
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return permissions, nil
+//}
