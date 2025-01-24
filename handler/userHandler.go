@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"task-golang/config"
@@ -29,6 +30,7 @@ func UserHandler(router *mux.Router) *mux.Router {
 
 	router.HandleFunc(config.RootPath+"/users/login", h.authenticate).Methods("POST")
 	router.HandleFunc(config.RootPath+"/users/register", h.register).Methods("POST")
+	router.HandleFunc(config.RootPath+"/users/active", h.active).Methods("GET")
 
 	return router
 }
@@ -52,4 +54,18 @@ func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *userHandler) active(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "token is required", http.StatusBadRequest)
+		return
+	}
+	fmt.Println("token=", token)
+
+	h.UserService.Active(r.Context(), token)
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
 }

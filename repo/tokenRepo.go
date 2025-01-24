@@ -16,6 +16,7 @@ type ITokenRepo interface {
 	FindTokenByActivationToken(ctx context.Context, activationToken string) (*model.Token, error)
 	FindTokenByUserId(ctx context.Context, userId int64) (*model.Token, error)
 	DeleteToken(ctx context.Context, token *model.Token) error
+	FindTokenByID(ctx context.Context, tokenID string) (*model.Token, error)
 }
 
 type TokenRepo struct {
@@ -164,4 +165,27 @@ func (tr TokenRepo) DeleteToken(ctx context.Context, token *model.Token) error {
 	}
 
 	return nil
+}
+
+// FindTokenByID retrieves a token from Redis using its ID
+func (tr TokenRepo) FindTokenByID(ctx context.Context, tokenID string) (*model.Token, error) {
+	// Construct the Redis key for the token
+	key := fmt.Sprintf("tokens:%s", tokenID)
+
+	// Retrieve the token data from Redis
+	data, err := RedisClient.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return nil, nil // Token not found
+	} else if err != nil {
+		return nil, fmt.Errorf("error retrieving token from Redis: %w", err)
+	}
+
+	// Unmarshal the token data into a Token struct
+	var token model.Token
+	err = json.Unmarshal([]byte(data), &token)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling token: %w", err)
+	}
+
+	return &token, nil
 }

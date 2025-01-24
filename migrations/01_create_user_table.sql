@@ -2,7 +2,7 @@
 
 CREATE TABLE users
 (
-    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id                  BIGSERIAL    NOT NULL PRIMARY KEY,
     username            VARCHAR(255),
     email               VARCHAR(255) NOT NULL UNIQUE,
     password            VARCHAR(256) NOT NULL,

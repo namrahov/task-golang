@@ -13,6 +13,7 @@ import (
 
 type IUserService interface {
 	Register(ctx context.Context, userRegistrationDto *model.UserRegistrationDto) *model.ErrorResponse
+	Active(ctx context.Context, token string) *model.ErrorResponse
 }
 
 type UserService struct {
@@ -25,26 +26,6 @@ type UserService struct {
 func (us *UserService) Register(ctx context.Context, dto *model.UserRegistrationDto) *model.ErrorResponse {
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.Register.start")
-
-	if !us.PasswordChecker.IsMiddleStrength(dto.Password) {
-		logger.Errorf("ActionLog.Register.error: password is weak")
-		return &model.ErrorResponse{
-			Error:   "PASSWORD_CHECK_EXCEPTION",
-			Message: "PASSWORD_SHOULD_HAS_MIN_8_SYMBOL_LOWERCASE_UPPERCASE_DIGIT",
-			Code:    http.StatusBadRequest,
-		}
-	}
-
-	user, errGetUser := us.UserRepo.GetUserByEmail(dto.Email)
-	if errGetUser != nil {
-		logger.Errorf("ActionLog.Register.error: cannot get user by email %v", dto.Email)
-		return &model.ErrorResponse{
-			Error:   fmt.Sprintf("%s.can't-get-user", model.Exception),
-			Message: errGetUser.Error(),
-			Code:    http.StatusNotFound,
-		}
-	}
-	activationToken := us.TokenUtil.GenerateToken()
 
 	tx, errBeginTransaction := us.UserRepo.BeginTransaction()
 	if errBeginTransaction != nil {
@@ -65,6 +46,26 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			errBeginTransaction = tx.Commit() // Commit if no error
 		}
 	}()
+
+	if !us.PasswordChecker.IsMiddleStrength(dto.Password) {
+		logger.Errorf("ActionLog.Register.error: password is weak")
+		return &model.ErrorResponse{
+			Error:   "PASSWORD_CHECK_EXCEPTION",
+			Message: "PASSWORD_SHOULD_HAS_MIN_8_SYMBOL_LOWERCASE_UPPERCASE_DIGIT",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	user, errGetUser := us.UserRepo.GetUserByEmail(dto.Email)
+	if errGetUser != nil {
+		logger.Errorf("ActionLog.Register.error: cannot get user by email %v", dto.Email)
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.can't-get-user", model.Exception),
+			Message: errGetUser.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+	activationToken := us.TokenUtil.GenerateToken()
 
 	if user == nil {
 		buildUser, errBuildUser := mapper.BuildUser(ctx, dto)
@@ -139,5 +140,46 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 	}
 
 	logger.Info("ActionLog.Register.success")
+	return nil
+}
+
+func (us *UserService) Active(ctx context.Context, token string) *model.ErrorResponse {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.Active.start")
+
+	existingToken, err := us.TokenRepo.FindTokenByActivationToken(ctx, token)
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.can_not_get_token", model.Exception),
+			Message: "Can not get token",
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	user, err := us.UserRepo.FindUserById(existingToken.UserID)
+	if user == nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.user_not_found", model.Exception),
+			Message: "Can not find user",
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	user.IsActive = true
+	_, errSaveUser := us.UserRepo.UpdateUser(user)
+	if errSaveUser != nil {
+		return nil
+	}
+
+	errDeleteToken := us.TokenRepo.DeleteToken(ctx, existingToken)
+	if errDeleteToken != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.user_not_found", model.Exception),
+			Message: "Can not find user",
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	logger.Info("ActionLog.Active.end")
 	return nil
 }
