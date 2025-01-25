@@ -1,28 +1,36 @@
 package model
 
-type User struct {
-	tableName struct{} `sql:"users" pg:",discard_unknown_columns"`
+import "time"
 
-	Id                 int64   `sql:"id"  json:"id"`
-	UserName           string  `sql:"username" json:"userName"`
-	Email              string  `sql:"email" json:"email"`
-	Password           []byte  `sql:"password" json:"-"`
-	PhoneNumber        string  `sql:"phone_number" json:"phoneNumber"`
-	AcceptNotification bool    `sql:"accept_notification" json:"acceptNotification,omitempty"`
-	IsActive           bool    `sql:"is_active, use_zero" json:"isActive"`
-	InactivatedDate    *string `sql:"inactivated_date" json:"inactivatedDate,omitempty"`
-	FullName           string  `sql:"full_name" json:"fullName"`
-	Description        string  `sql:"description" json:"description"`
-	Roles              []*Role `pg:"many2many:users_roles,joinFK:user_id" json:"roles"`
-	CreatedAt          string  `sql:"created_at" json:"-"`
-	UpdatedAt          string  `sql:"updated_at" json:"-"`
+type User struct {
+	Id                 int64      `gorm:"primaryKey;column:id" json:"id"`
+	UserName           string     `gorm:"column:username;size:255;not null" json:"userName"`
+	Email              string     `gorm:"column:email;size:255;not null;unique" json:"email"`
+	Password           []byte     `gorm:"column:password;not null" json:"-"`
+	PhoneNumber        string     `gorm:"column:phone_number;size:20" json:"phoneNumber"`
+	AcceptNotification bool       `gorm:"column:accept_notification;default:false" json:"acceptNotification,omitempty"`
+	IsActive           bool       `gorm:"column:is_active;default:false" json:"isActive"`
+	InactivatedDate    *time.Time `gorm:"column:inactivated_date" json:"inactivatedDate,omitempty"`
+	FullName           string     `gorm:"column:full_name;size:255" json:"fullName"`
+	Description        string     `gorm:"column:description;type:text" json:"description"`
+	Roles              []*Role    `gorm:"many2many:users_roles;joinForeignKey:UserID;joinReferences:RoleID" json:"roles"`
+	CreatedAt          time.Time  `gorm:"column:created_at;autoCreateTime" json:"-"`
+	UpdatedAt          time.Time  `gorm:"column:updated_at;autoUpdateTime" json:"-"`
+}
+
+// TableName overrides the default table name
+func (User) TableName() string {
+	return "users"
 }
 
 type UserRole struct {
-	tableName struct{} `sql:"users_roles" pg:",discard_unknown_columns"`
+	UserId int64 `gorm:"column:user_id;not null" json:"userId"`
+	RoleId int64 `gorm:"column:role_id;not null" json:"roleId"`
+}
 
-	UserId int64 `sql:"user_id"`
-	RoleId int64 `sql:"role_id"`
+// TableName overrides the default table name
+func (UserRole) TableName() string {
+	return "users_roles"
 }
 
 type UserRegistrationDto struct {

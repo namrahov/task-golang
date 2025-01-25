@@ -2,61 +2,68 @@ package repo
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"github.com/go-pg/pg"
 	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
-	migrate "github.com/rubenv/sql-migrate"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"task-golang/config"
+	"task-golang/model"
 	"time"
 )
 
-var Db *pg.DB
 var RedisClient *redis.Client
+var Db *gorm.DB
 
 func InitPostgresDb() {
-	Db = pg.Connect(&pg.Options{
-		Addr:        config.Props.DbHost + ":" + config.Props.DbPort,
-		User:        config.Props.DbUser,
-		Password:    config.Props.DbPass,
-		Database:    config.Props.DbName,
-		PoolSize:    10,
-		DialTimeout: 1 * time.Minute,
-		MaxRetries:  2,
-		MaxConnAge:  15 * time.Minute,
-	})
+	//dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+	//	config.Props.DbHost, config.Props.DbUser, config.Props.DbPass, config.Props.DbName, config.Props.DbPort)
+	//
+	//var err error
+	//Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	//if err != nil {
+	//	log.Fatalf("Failed to connect to the database: %v", err)
+	//}
+
+	// Optional: Configure connection pool settings
+	sqlDB, err := Db.DB()
+	if err != nil {
+		log.Fatalf("Failed to configure connection pool: %v", err)
+	}
+
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(15 * time.Minute)
+
+	log.Println("Database connection successfully established!")
 }
 
 func MigrateDb() error {
-	log.Info("MigrateDb.start")
+	log.Println("MigrateDb.start")
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
+		config.Props.DbHost, config.Props.DbUser, config.Props.DbPass, config.Props.DbName, config.Props.DbPort)
 
-	connStr := fmt.Sprintf("dbname=%s user=%s password=%s host=%s port=%s sslmode=disable", config.Props.DbName,
-		config.Props.DbUser, config.Props.DbPass, config.Props.DbHost, config.Props.DbPort)
-
-	db, err := sql.Open("postgres", connStr)
+	var err error
+	Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return err
-	}
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-
-		}
-	}(db)
-
-	migrations := &migrate.FileMigrationSource{
-		Dir: "migrations",
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 
-	n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
-	if err != nil {
-		return err
+	errAutoMigrate := Db.AutoMigrate(
+		&model.User{},
+		&model.Permission{},
+		&model.Role{},
+		&model.UserRole{},
+		&model.Role{},
+	)
+
+	if errAutoMigrate != nil {
+		return fmt.Errorf("error during migration: %w", errAutoMigrate)
 	}
 
-	log.Info("Applied ", n, " migrations")
-	log.Info("MigrateDb.end")
+	log.Println("Migrations applied successfully!")
+	log.Println("MigrateDb.end")
 	return nil
 }
 
