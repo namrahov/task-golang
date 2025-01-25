@@ -25,16 +25,6 @@ func (r *UserRepo) BeginTransaction() *gorm.DB {
 	return Db.Begin()
 }
 
-// BeginTransaction starts a database transaction and returns the transaction object.
-//func (r *UserRepo) BeginTransaction() (*pg.Tx, error) {
-//	tx, err := Db.Begin()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return tx, nil
-//}
-
 func (r UserRepo) FindUserById(id int64) (*model.User, error) {
 	var user model.User
 	err := Db.First(&user, id).Error
@@ -113,7 +103,6 @@ func (r UserRepo) AddRolesToUser(tx *gorm.DB, userId int64, roles []*model.Role)
 func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*model.User, error) {
 	var user model.User
 
-	// Query user and roles in a single query
 	err := Db.Model(&model.User{}).
 		Where("(email = ? OR username = ?) AND is_active = ?", emailOrNickname, emailOrNickname, true).
 		Preload("Roles", func(db *gorm.DB) *gorm.DB {
@@ -129,6 +118,5 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 		return nil, err // Other errors
 	}
 
-	fmt.Println("userRole=", len(user.Roles))
 	return &user, nil
 }
