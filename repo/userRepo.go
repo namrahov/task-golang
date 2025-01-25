@@ -103,19 +103,42 @@ func (r UserRepo) AddRolesToUser(tx *pg.Tx, userId int64, roles []*model.Role) e
 func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*model.User, error) {
 	var user model.User
 	err := Db.Model(&user).
-		Relation("Roles"). // Fetch related Roles
 		Where("(email = ? OR username = ?) AND is_active = ?", emailOrNickname, emailOrNickname, true).
 		Select()
 
+	fmt.Println("kkkkkkkkkkk")
 	if err != nil {
-		// Check if no rows were found
 		if err == pg.ErrNoRows {
-			// Return nil user and no error
-			return nil, nil
+			return nil, nil // User not found
 		}
-		// Return any other error
+		return nil, err // Other errors
+	}
+	fmt.Println("2222222222")
+	// Fetch roles explicitly to avoid duplicates
+	var roles []*model.Role
+	err = Db.Model(&roles).
+		Table("roles"). // Explicitly set the table name
+		Join("JOIN users_roles ur ON ur.role_id = roles.id").
+		Where("ur.user_id = ?", user.Id).
+		Select()
+
+	if err != nil {
+		fmt.Println("3333333", err)
 		return nil, err
 	}
+
+	fmt.Println("44444444")
+	// Assign unique roles to the user
+	roleMap := make(map[int64]*model.Role)
+	for _, role := range roles {
+		roleMap[role.Id] = role
+	}
+	fmt.Println("5555555")
+	user.Roles = make([]*model.Role, 0, len(roleMap))
+	for _, role := range roleMap {
+		user.Roles = append(user.Roles, role)
+	}
+	fmt.Println("66666666")
 
 	return &user, nil
 }
