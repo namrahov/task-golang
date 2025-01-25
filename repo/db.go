@@ -5,28 +5,33 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
+	migrate "github.com/rubenv/sql-migrate"
+
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"task-golang/config"
-	"task-golang/model"
 	"time"
 )
 
 var RedisClient *redis.Client
 var Db *gorm.DB
 
-func InitPostgresDb() {
-	//dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-	//	config.Props.DbHost, config.Props.DbUser, config.Props.DbPass, config.Props.DbName, config.Props.DbPort)
-	//
-	//var err error
-	//Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	//if err != nil {
-	//	log.Fatalf("Failed to connect to the database: %v", err)
-	//}
+func MigrateDb() error {
+	log.Println("MigrateDb.start")
 
-	// Optional: Configure connection pool settings
+	// Create GORM database connection
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		config.Props.DbUser, config.Props.DbPass, config.Props.DbHost, config.Props.DbPort, config.Props.DbName)
+
+	var err error
+	Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
+
 	sqlDB, err := Db.DB()
 	if err != nil {
 		log.Fatalf("Failed to configure connection pool: %v", err)
@@ -36,30 +41,13 @@ func InitPostgresDb() {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(15 * time.Minute)
 
-	log.Println("Database connection successfully established!")
-}
-
-func MigrateDb() error {
-	log.Println("MigrateDb.start")
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		config.Props.DbHost, config.Props.DbUser, config.Props.DbPass, config.Props.DbName, config.Props.DbPort)
-
-	var err error
-	Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("Failed to connect to the database: %v", err)
+	migrations := &migrate.FileMigrationSource{
+		Dir: "migrations",
 	}
 
-	errAutoMigrate := Db.AutoMigrate(
-		&model.User{},
-		&model.Permission{},
-		&model.Role{},
-		&model.UserRole{},
-		&model.Role{},
-	)
-
-	if errAutoMigrate != nil {
-		return fmt.Errorf("error during migration: %w", errAutoMigrate)
+	_, errExec := migrate.Exec(sqlDB, "postgres", migrations, migrate.Up)
+	if errExec != nil {
+		return errExec
 	}
 
 	log.Println("Migrations applied successfully!")

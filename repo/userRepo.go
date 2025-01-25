@@ -118,7 +118,7 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 		Where("(email = ? OR username = ?) AND is_active = ?", emailOrNickname, emailOrNickname, true).
 		Preload("Roles", func(db *gorm.DB) *gorm.DB {
 			return db.Joins("JOIN users_roles ur ON ur.role_id = roles.id").
-				Where("ur.user_id = users.id")
+				Joins("JOIN users ON users.id = ur.user_id") // Explicitly join the `users` table
 		}).
 		First(&user).Error
 
@@ -129,5 +129,6 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 		return nil, err // Other errors
 	}
 
+	fmt.Println("userRole=", len(user.Roles))
 	return &user, nil
 }

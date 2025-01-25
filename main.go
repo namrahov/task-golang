@@ -44,9 +44,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// This code connect to the db
-	repo.InitPostgresDb()
-
 	redisClient := repo.InitRedis()
 
 	// This code initializes a new HTTP router using the Gorilla Mux package

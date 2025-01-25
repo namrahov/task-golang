@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
-	"strconv"
 	"task-golang/config"
 	"task-golang/model"
 	"task-golang/repo"
@@ -33,19 +32,19 @@ func UserHandler(router *mux.Router) *mux.Router {
 	router.HandleFunc(config.RootPath+"/users/login", h.authenticate).Methods("POST")
 	router.HandleFunc(config.RootPath+"/users/register", h.register).Methods("POST")
 	router.HandleFunc(config.RootPath+"/users/active", h.active).Methods("GET")
-	router.HandleFunc(config.RootPath+"/users/demo/{id}", h.demo).Methods("POST")
+	router.HandleFunc(config.RootPath+"/users/demo", h.demo).Methods("POST")
 
 	return router
 }
 
 func (h *userHandler) demo(w http.ResponseWriter, r *http.Request) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	fmt.Println("Demo isledi senik", id)
+	//idStr := mux.Vars(r)["id"]
+	//id, err := strconv.ParseInt(idStr, 10, 64)
+	//if err != nil {
+	//	http.Error(w, err.Error(), http.StatusBadRequest)
+	//	return
+	//}
+	fmt.Println("Demo isledi senik")
 }
 
 func (h *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
