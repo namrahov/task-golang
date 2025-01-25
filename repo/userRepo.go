@@ -106,14 +106,12 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 		Where("(email = ? OR username = ?) AND is_active = ?", emailOrNickname, emailOrNickname, true).
 		Select()
 
-	fmt.Println("kkkkkkkkkkk")
 	if err != nil {
 		if err == pg.ErrNoRows {
 			return nil, nil // User not found
 		}
 		return nil, err // Other errors
 	}
-	fmt.Println("2222222222")
 	// Fetch roles explicitly to avoid duplicates
 	var roles []*model.Role
 	err = Db.Model(&roles).
@@ -127,18 +125,16 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 		return nil, err
 	}
 
-	fmt.Println("44444444")
 	// Assign unique roles to the user
 	roleMap := make(map[int64]*model.Role)
 	for _, role := range roles {
 		roleMap[role.Id] = role
 	}
-	fmt.Println("5555555")
+
 	user.Roles = make([]*model.Role, 0, len(roleMap))
 	for _, role := range roleMap {
 		user.Roles = append(user.Roles, role)
 	}
-	fmt.Println("66666666")
 
 	return &user, nil
 }

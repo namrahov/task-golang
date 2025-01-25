@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"regexp"
 	"strings"
 	"task-golang/config"
 	"task-golang/model"
@@ -180,7 +181,8 @@ func checkPermission(roles []string, requestURI, httpMethod string) bool {
 
 	// Check if the request URI and method match any of the permissions
 	for _, permission := range permissions {
-		if permission.Url == requestURI && strings.EqualFold(permission.HttpMethod, httpMethod) {
+		fmt.Println(permission)
+		if matchPattern(permission.Url, requestURI) && strings.EqualFold(permission.HttpMethod, httpMethod) {
 			return true
 		}
 	}
@@ -199,4 +201,16 @@ func isWhitelisted(method, url string) bool {
 		}
 	}
 	return false
+}
+
+// matchPattern checks if a request URI matches a permission pattern
+func matchPattern(pattern, requestURI string) bool {
+	// Replace placeholders in the pattern with regex patterns
+	regexPattern := "^" + strings.ReplaceAll(pattern, "{id}", "\\d+") + "$"
+	matched, err := regexp.MatchString(regexPattern, requestURI)
+	if err != nil {
+		log.Errorf("Error matching pattern: %v", err)
+		return false
+	}
+	return matched
 }
