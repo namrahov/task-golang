@@ -197,7 +197,14 @@ func isWhitelisted(method, url string) bool {
 		return false
 	}
 	for _, allowedURL := range allowedURLs {
-		if allowedURL == url {
+		// Check if the allowed URL ends with a wildcard '*' or matches exactly
+		if strings.HasSuffix(allowedURL, "*") {
+			// Remove the '*' and check if the URL starts with the remaining prefix
+			prefix := strings.TrimSuffix(allowedURL, "*")
+			if strings.HasPrefix(url, prefix) {
+				return true
+			}
+		} else if allowedURL == url {
 			return true
 		}
 	}
