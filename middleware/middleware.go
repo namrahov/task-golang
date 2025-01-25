@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"github.com/go-pg/pg"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -77,7 +78,6 @@ func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			fmt.Println("isledi3")
 			// Extract Authorization Header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
@@ -85,11 +85,9 @@ func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			fmt.Println("isledi4")
 			// Extract Token
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-			fmt.Println("isledi5")
 			// Parse and Validate JWT Token
 			token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -98,13 +96,11 @@ func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 				return []byte(config.Props.JwtSecret), nil
 			})
 
-			fmt.Println("isledi6")
 			if err != nil || !token.Valid {
 				http.Error(w, "Unauthorized: Invalid token", http.StatusUnauthorized)
 				return
 			}
 
-			fmt.Println("isledi7")
 			// Extract Claims
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok || claims["user_id"] == nil || claims["roles"] == nil {
@@ -115,18 +111,27 @@ func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 			userId := int64(claims["user_id"].(float64))
 			roles := claims["roles"].([]interface{})
 
-			fmt.Println("isledi9")
 			userRoles := make([]string, 0, len(roles)) // Initialize with capacity but flexible length
+
 			for i, role := range roles {
-				fmt.Println("isledi10role=", role)
-				if strRole, ok := role.(string); ok {
-					userRoles = append(userRoles, strRole)
+				fmt.Printf("Processing role at index %d: %v (type: %T)\n", i, role, role)
+				// Ensure role is a map and extract the "name" field
+				if roleMap, ok := role.(map[string]interface{}); ok {
+					if name, exists := roleMap["name"]; exists {
+						if nameStr, ok := name.(string); ok {
+							userRoles = append(userRoles, nameStr)
+						} else {
+							fmt.Printf("name field at index %d is not a string: %v\n", i, name)
+						}
+					} else {
+						fmt.Printf("No 'name' field found in role at index %d: %v\n", i, role)
+					}
 				} else {
-					fmt.Printf("role at index %d is not a string: %v\n", i, role)
+					fmt.Printf("Role at index %d is not a map: %v\n", i, role)
 				}
 			}
 
-			fmt.Println("isledi10")
+			fmt.Println("isledi10", userRoles)
 			hasPermission := checkPermission(userRoles, r.RequestURI, r.Method)
 			if !hasPermission {
 				http.Error(w, "Forbidden: You do not have access to this resource", http.StatusForbidden)
@@ -154,13 +159,21 @@ func addLoggerParam(fields log.Fields, field string, value string) {
 }
 
 func checkPermission(roles []string, requestURI, httpMethod string) bool {
+	// Ensure roles is not empty to avoid SQL syntax errors
+	if len(roles) == 0 {
+		log.Errorf("Roles slice is empty, cannot check permissions.")
+		return false
+	}
+
 	var permissions []*model.Permission
-	err := repo.Db.Model(&model.Permission{}).
-		Join("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
-		Join("JOIN roles r ON r.id = rp.role_id").
-		Where("r.name IN (?)", roles).
-		Select(&permissions)
+	err := repo.Db.Model(&permissions). // Use &permissions here
+						Table("permissions").
+						Join("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
+						Join("JOIN roles r ON r.id = rp.role_id").
+						Where("r.name IN (?)", pg.In(roles)). // Ensure pg.In is used for slices
+						Select()
 	if err != nil {
+		fmt.Println("checkPermission err", err)
 		log.Errorf("Error fetching permissions: %v", err)
 		return false
 	}
