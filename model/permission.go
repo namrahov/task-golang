@@ -1,10 +1,13 @@
 package model
 
 type Permission struct {
-	tableName struct{} `sql:"permissions" pg:",discard_unknown_columns"`
+	ID          int64  `gorm:"primaryKey;column:id" json:"id"`
+	URL         string `gorm:"column:url" json:"url"`
+	HTTPMethod  string `gorm:"column:http_method" json:"httpMethod"`
+	Description string `gorm:"column:description" json:"description"`
+}
 
-	Id          int64  `sql:"id"  json:"id"`
-	Url         string `sql:"url" json:"url"`
-	HttpMethod  string `sql:"http_method" json:"httpMethod"`
-	Description string `sql:"description" json:"description"`
+// TableName overrides the default table name
+func (Permission) TableName() string {
+	return "permissions"
 }

@@ -2,61 +2,56 @@ package repo
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"github.com/go-pg/pg"
 	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 	migrate "github.com/rubenv/sql-migrate"
+
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"task-golang/config"
 	"time"
 )
 
-var Db *pg.DB
 var RedisClient *redis.Client
-
-func InitPostgresDb() {
-	Db = pg.Connect(&pg.Options{
-		Addr:        config.Props.DbHost + ":" + config.Props.DbPort,
-		User:        config.Props.DbUser,
-		Password:    config.Props.DbPass,
-		Database:    config.Props.DbName,
-		PoolSize:    10,
-		DialTimeout: 1 * time.Minute,
-		MaxRetries:  2,
-		MaxConnAge:  15 * time.Minute,
-	})
-}
+var Db *gorm.DB
 
 func MigrateDb() error {
-	log.Info("MigrateDb.start")
+	log.Println("MigrateDb.start")
 
-	connStr := fmt.Sprintf("dbname=%s user=%s password=%s host=%s port=%s sslmode=disable", config.Props.DbName,
-		config.Props.DbUser, config.Props.DbPass, config.Props.DbHost, config.Props.DbPort)
+	// Create GORM database connection
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		config.Props.DbUser, config.Props.DbPass, config.Props.DbHost, config.Props.DbPort, config.Props.DbName)
 
-	db, err := sql.Open("postgres", connStr)
+	var err error
+	Db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return err
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
 
-		}
-	}(db)
+	sqlDB, err := Db.DB()
+	if err != nil {
+		log.Fatalf("Failed to configure connection pool: %v", err)
+	}
+
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(15 * time.Minute)
 
 	migrations := &migrate.FileMigrationSource{
 		Dir: "migrations",
 	}
 
-	n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
-	if err != nil {
-		return err
+	_, errExec := migrate.Exec(sqlDB, "postgres", migrations, migrate.Up)
+	if errExec != nil {
+		return errExec
 	}
 
-	log.Info("Applied ", n, " migrations")
-	log.Info("MigrateDb.end")
+	log.Println("Migrations applied successfully!")
+	log.Println("MigrateDb.end")
 	return nil
 }
 

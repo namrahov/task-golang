@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/go-pg/pg"
 	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -166,15 +165,17 @@ func checkPermission(roles []string, requestURI, httpMethod string) bool {
 		return false
 	}
 
-	var permissions []*model.Permission
-	err := repo.Db.Model(&permissions). // Use &permissions here
-						Table("permissions").
-						Join("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
-						Join("JOIN roles r ON r.id = rp.role_id").
-						Where("r.name IN (?)", pg.In(roles)). // Ensure pg.In is used for slices
-						Select()
+	var permissions []model.Permission
+
+	// Query permissions with GORM
+	err := repo.Db.Table("permissions").
+		Select("permissions.*").
+		Joins("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
+		Joins("JOIN roles r ON r.id = rp.role_id").
+		Where("r.name IN ?", roles).
+		Find(&permissions).Error
 	if err != nil {
-		fmt.Println("checkPermission err", err)
+		fmt.Printf("checkPermission err: %v\n", err)
 		log.Errorf("Error fetching permissions: %v", err)
 		return false
 	}
@@ -182,7 +183,7 @@ func checkPermission(roles []string, requestURI, httpMethod string) bool {
 	// Check if the request URI and method match any of the permissions
 	for _, permission := range permissions {
 		fmt.Println(permission)
-		if matchPattern(permission.Url, requestURI) && strings.EqualFold(permission.HttpMethod, httpMethod) {
+		if matchPattern(permission.URL, requestURI) && strings.EqualFold(permission.HTTPMethod, httpMethod) {
 			return true
 		}
 	}

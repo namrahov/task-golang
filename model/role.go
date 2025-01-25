@@ -1,9 +1,12 @@
 package model
 
 type Role struct {
-	tableName struct{} `sql:"roles" pg:",discard_unknown_columns"`
+	Id          int64         `gorm:"primaryKey;column:id" json:"id"`
+	Name        string        `gorm:"column:name" json:"name"`
+	Permissions []*Permission `gorm:"many2many:roles_permissions;joinForeignKey:RoleID;joinReferences:PermissionID" json:"permissions"`
+}
 
-	Id          int64         `sql:"id"  json:"id"`
-	Name        string        `sql:"name" json:"name"`
-	Permissions []*Permission `pg:"many2many:roles_permissions,joinFK:role_id" json:"permissions"`
+// TableName overrides the default table name
+func (Role) TableName() string {
+	return "roles"
 }

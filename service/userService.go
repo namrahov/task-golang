@@ -20,7 +20,6 @@ type IUserService interface {
 	Register(ctx context.Context, userRegistrationDto *model.UserRegistrationDto) *model.ErrorResponse
 	Active(ctx context.Context, token string) *model.ErrorResponse
 	Authenticate(ctx context.Context, dto *model.AuthRequestDto) (*model.JwtToken, *model.ErrorResponse)
-	//CheckPermission(roles []string, requestURI, httpMethod string) bool
 }
 
 type UserService struct {
@@ -34,23 +33,29 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.Register.start")
 
-	tx, errBeginTransaction := us.UserRepo.BeginTransaction()
-	if errBeginTransaction != nil {
+	// Begin GORM transaction
+	tx := us.UserRepo.BeginTransaction()
+	if tx.Error != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.transaction-begin-failed", model.Exception),
-			Message: errBeginTransaction.Error(),
+			Message: tx.Error.Error(),
 			Code:    http.StatusInternalServerError,
 		}
 	}
 
+	// Handle transaction rollback/commit with deferred function
 	defer func() {
 		if p := recover(); p != nil {
-			tx.Rollback() // Rollback on panic
+			_ = tx.Rollback() // Rollback on panic
 			panic(p)
-		} else if errBeginTransaction != nil {
-			tx.Rollback() // Rollback on error
+		} else if tx.Error != nil {
+			_ = tx.Rollback() // Rollback on error
 		} else {
-			errBeginTransaction = tx.Commit() // Commit if no error
+			err := tx.Commit() // Commit if no error
+			if err != nil {
+				//logger.WithError(err).Error("Transaction commit failed")
+				fmt.Println("Transaction commit failed")
+			}
 		}
 	}()
 
@@ -258,30 +263,29 @@ func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestD
 
 // ActivateIfInactiveLess30Days activates a user if inactive for less than 30 days
 func (us *UserService) activateIfInactiveLess30Days(user *model.User) error {
+	// Check if the user is inactive
 	if !user.IsActive {
 		if user.InactivatedDate != nil {
-			// Parse the inactivated date
-			inactivatedTime, err := time.Parse("2006-01-02", *user.InactivatedDate)
-			if err != nil {
-				return errors.New("invalid inactivated date format")
-			}
-
 			// Check if the inactivated date is within the last 30 days
-			if inactivatedTime.After(time.Now().AddDate(0, 0, -30)) {
+			if user.InactivatedDate.After(time.Now().AddDate(0, 0, -30)) {
 				user.IsActive = true
 				user.InactivatedDate = nil
+
+				// Update the user in the repository
 				_, err := us.UserRepo.UpdateUser(user)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to update user: %w", err)
 				}
-				return err
+				return nil
 			} else {
-				return errors.New("USER_IS_INACTIVE")
+				return errors.New("USER_IS_INACTIVE: inactive for more than 30 days")
 			}
 		} else {
-			return errors.New("USER_IS_INACTIVE")
+			return errors.New("USER_IS_INACTIVE: inactivation date is missing")
 		}
 	}
+
+	// User is already active
 	return nil
 }
 
