@@ -9,8 +9,9 @@ type Task struct {
 	Status     Status    `gorm:"column:status" json:"status"`
 	CreatedBy  *User     `gorm:"foreignKey:UserId;references:Id" json:"createdBy"` // Assuming this references the creator's ID
 	ChangedBy  *User     `gorm:"foreignKey:UserId;references:Id" json:"changedBy"` // Assuming this references the changer's ID
-	AssignedTo *User     `gorm:"foreignKey:UserId;references:Id" json:"user"`      // Many-to-One relationship
-	Board      *Board    `gorm:"foreignKey:BoardId;references:Id" json:"board"`    // Many-to-One relationship
+	AssignedBy *User     `gorm:"foreignKey:UserId;references:Id" json:"assignedBy"`
+	AssignedTo *User     `gorm:"foreignKey:UserId;references:Id" json:"assignedTo"` // Many-to-One relationship
+	Board      *Board    `gorm:"foreignKey:BoardId;references:Id" json:"board"`     // Many-to-One relationship
 	Deadline   time.Time `gorm:"column:deadline" json:"deadline"`
 	CreatedAt  time.Time `gorm:"column:created_at" json:"-"`
 	UpdatedAt  time.Time `gorm:"column:updated_at" json:"-"`
