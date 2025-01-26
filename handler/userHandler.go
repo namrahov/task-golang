@@ -132,6 +132,15 @@ func (h *userHandler) active(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// logout logs out the user and clears all cookies.
+// @Summary Logout user
+// @Description Logs out the user by clearing all cookies and jwt token.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Success 204 {string} string "User successfully logged out"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/users/logout [post]
 func (h *userHandler) logout(w http.ResponseWriter, r *http.Request) {
 	// Retrieve all cookies
 	cookies := r.Cookies()

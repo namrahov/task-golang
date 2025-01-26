@@ -106,6 +106,25 @@ paths:
       summary: Authenticate user
       tags:
       - Authentication
+  /v1/users/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logs out the user by clearing all cookies and jwt token.
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User successfully logged out
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Logout user
+      tags:
+      - User
   /v1/users/register:
     post:
       consumes:

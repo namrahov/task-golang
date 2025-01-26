@@ -120,6 +120,35 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/users/logout": {
+            "post": {
+                "description": "Logs out the user by clearing all cookies and jwt token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Logout user",
+                "responses": {
+                    "204": {
+                        "description": "User successfully logged out",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/users/register": {
             "post": {
                 "description": "Registers a new user with the provided information.",
