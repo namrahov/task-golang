@@ -17,6 +17,7 @@ type ITokenRepo interface {
 	FindTokenByUserId(ctx context.Context, userId int64) (*model.Token, error)
 	DeleteToken(ctx context.Context, token *model.Token) error
 	FindTokenByID(ctx context.Context, tokenID string) (*model.Token, error)
+	FindTokenByToken(ctx context.Context, token string) (*model.Token, error)
 }
 
 type TokenRepo struct {
@@ -188,4 +189,39 @@ func (tr TokenRepo) FindTokenByID(ctx context.Context, tokenID string) (*model.T
 	}
 
 	return &token, nil
+}
+
+func (tr TokenRepo) FindTokenByToken(ctx context.Context, token string) (*model.Token, error) {
+	// Construct the token index key
+	tokenIndexKey := fmt.Sprintf("tokenIndex:%s", token)
+
+	// Get the token ID from the token index
+	tokenID, err := RedisClient.Get(ctx, tokenIndexKey).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, fmt.Errorf("token not found: %s", token)
+		}
+		return nil, fmt.Errorf("error fetching token ID from Redis: %w", err)
+	}
+
+	// Construct the primary token key using the retrieved token ID
+	key := fmt.Sprintf("tokens:%s", tokenID)
+
+	// Get the token data from Redis
+	tokenData, err := RedisClient.Get(ctx, key).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, fmt.Errorf("token not found for token ID: %s", tokenID)
+		}
+		return nil, fmt.Errorf("error fetching token data from Redis: %w", err)
+	}
+
+	// Unmarshal the token data into a Token struct
+	var tokenModel model.Token
+	err = json.Unmarshal([]byte(tokenData), &tokenModel)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling token data: %w", err)
+	}
+
+	return &tokenModel, nil
 }

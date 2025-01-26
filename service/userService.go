@@ -21,6 +21,7 @@ type IUserService interface {
 	Register(ctx context.Context, userRegistrationDto *model.UserRegistrationDto) *model.ErrorResponse
 	Active(ctx context.Context, token string) *model.ErrorResponse
 	Authenticate(ctx context.Context, dto *model.AuthRequestDto) (*model.JwtToken, *model.ErrorResponse)
+	Logout(ctx context.Context) *model.ErrorResponse
 }
 
 type UserService struct {
@@ -296,6 +297,44 @@ func (us *UserService) activateIfInactiveLess30Days(user *model.User) error {
 	}
 
 	// User is already active
+	return nil
+}
+
+func (us *UserService) Logout(ctx context.Context) *model.ErrorResponse {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.Logout.start")
+
+	// Retrieve the auth header from the context
+	authHeader, ok := ctx.Value(model.ContextAuthHeader).(string)
+	if !ok {
+		logger.Warn("ActionLog.Logout.missingAuthHeader")
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.authorization_header_is_missing", model.Exception),
+			Message: "Authorization header is missing",
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	token, errFindTokenByToken := us.TokenRepo.FindTokenByToken(ctx, authHeader)
+
+	if errFindTokenByToken != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant_find_token", model.Exception),
+			Message: "Token is not found",
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	errDeleteToken := us.TokenRepo.DeleteToken(ctx, token)
+	if errDeleteToken != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant_delete_token", model.Exception),
+			Message: "Token is not deleted",
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	logger.Info("ActionLog.Logout.end")
 	return nil
 }
 

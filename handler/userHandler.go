@@ -10,6 +10,7 @@ import (
 	"task-golang/repo"
 	"task-golang/service"
 	"task-golang/util"
+	"time"
 )
 
 type userHandler struct {
@@ -33,6 +34,7 @@ func UserHandler(router *mux.Router) *mux.Router {
 	router.HandleFunc(config.RootPath+"/users/register", h.register).Methods("POST")
 	router.HandleFunc(config.RootPath+"/users/active", h.active).Methods("GET")
 	router.HandleFunc(config.RootPath+"/users/demo", h.demo).Methods("POST")
+	router.HandleFunc(config.RootPath+"/users/logout", h.logout).Methods("GET")
 
 	return router
 }
@@ -123,9 +125,29 @@ func (h *userHandler) active(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "token is required", http.StatusBadRequest)
 		return
 	}
-	fmt.Println("token=", token)
 
 	h.UserService.Active(r.Context(), token)
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *userHandler) logout(w http.ResponseWriter, r *http.Request) {
+	// Retrieve all cookies
+	cookies := r.Cookies()
+	// Iterate over each cookie and delete it
+
+	h.UserService.Logout(r.Context())
+
+	for _, cookie := range cookies {
+		http.SetCookie(w, &http.Cookie{
+			Name:    cookie.Name,
+			Value:   "",
+			Path:    "/",             // Match the path of the original cookie
+			MaxAge:  -1,              // Instruct the browser to delete the cookie
+			Expires: time.Unix(0, 0), // Alternatively, set an expiration date in the past
+		})
+	}
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)

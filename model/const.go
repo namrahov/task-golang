@@ -24,8 +24,9 @@ const (
 type ContextKey string
 
 const (
-	ContextUserID    ContextKey = "userID"
-	ContextUserRoles ContextKey = "userRoles"
+	ContextUserID     ContextKey = "userID"
+	ContextUserRoles  ContextKey = "userRoles"
+	ContextAuthHeader ContextKey = "authHeader"
 )
 
 type LinkType string

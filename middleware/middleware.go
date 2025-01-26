@@ -141,6 +141,7 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 			// Add User Info to Context
 			ctx = context.WithValue(ctx, model.ContextUserID, userId)
 			ctx = context.WithValue(ctx, model.ContextUserRoles, userRoles)
+			ctx = context.WithValue(ctx, model.ContextAuthHeader, authHeader)
 
 			ctx = context.WithValue(ctx, model.ContextLogger, logger)
 			ctx = context.WithValue(ctx, model.ContextHeader, header)
