@@ -121,7 +121,12 @@ const docTemplate = `{
             }
         },
         "/v1/users/logout": {
-            "post": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Logs out the user by clearing all cookies and jwt token.",
                 "consumes": [
                     "application/json"
@@ -240,6 +245,13 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

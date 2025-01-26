@@ -79,6 +79,7 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 
 			// Extract Authorization Header
 			authHeader := r.Header.Get("Authorization")
+			fmt.Println("authHeader", authHeader)
 			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") || !existByToken(ctx, authHeader) {
 				http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
 				return

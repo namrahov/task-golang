@@ -107,7 +107,7 @@ paths:
       tags:
       - Authentication
   /v1/users/logout:
-    post:
+    get:
       consumes:
       - application/json
       description: Logs out the user by clearing all cookies and jwt token.
@@ -122,6 +122,8 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Logout user
       tags:
       - User
@@ -158,4 +160,9 @@ paths:
 schemes:
 - http
 - https
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

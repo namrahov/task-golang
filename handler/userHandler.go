@@ -140,7 +140,8 @@ func (h *userHandler) active(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Success 204 {string} string "User successfully logged out"
 // @Failure 500 {object} model.ErrorResponse "Internal server error"
-// @Router /v1/users/logout [post]
+// @Router /v1/users/logout [get]
+// @Security     BearerAuth
 func (h *userHandler) logout(w http.ResponseWriter, r *http.Request) {
 	// Retrieve all cookies
 	cookies := r.Cookies()

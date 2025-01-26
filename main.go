@@ -33,6 +33,9 @@ var opts struct {
 
 // @host      localhost:9093
 // @BasePath  /
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
 
 // @schemes   http https
 func main() {
