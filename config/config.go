@@ -25,6 +25,9 @@ type Args struct {
 	JwtSecret             string    `arg:"env:JWT_SECRET,required"`
 	TokenLifetime         string    `arg:"env:TOKEN_LIFETIME,required"`
 	TokenExtendedLifetime string    `arg:"env:TOKEN_EXTENDED_LIFETIME,required"`
+	SwaggerHost           string    `arg:"env:SWAGGER_HOST,required"`
+	SwaggerBasePath       string    `arg:"env:SWAGGER_BASEPATH,required"`
+	UrlHeader             string    `arg:"env:URL_HEADER,required"`
 }
 
 var Props Args

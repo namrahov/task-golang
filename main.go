@@ -16,7 +16,7 @@ import (
 )
 
 var opts struct {
-	Profile string `short:"p" long:"profile" default:"dev" description:"Application run profile"`
+	Profile string `short:"p" long:"profile" default:"local" description:"Application run profile"`
 }
 
 // @title           Your API Title
@@ -31,8 +31,8 @@ var opts struct {
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host      localhost:9093
-// @BasePath  /
+// @host           {swaggerHost}  // Dynamic host placeholder
+// @BasePath       {swaggerBasePath}  // Dynamic base path placeholder
 // @securityDefinitions.apikey  BearerAuth
 // @in                          header
 // @name                        Authorization
@@ -77,6 +77,14 @@ func main() {
 	handler.UserHandler(router)
 
 	// Swagger handler
+	// Read environment variables for host and base path
+	swaggerHost := config.Props.SwaggerHost
+	swaggerBasePath := config.Props.SwaggerBasePath
+	urlHeader := config.Props.UrlHeader
+	// Set dynamic Swagger options
+	httpSwagger.URL(urlHeader + swaggerHost + swaggerBasePath + "/swagger/doc.json") // Set the Swagger endpoint dynamically
+
+	// Serve Swagger
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	log.Println("Starting server at port:", config.Props.Port)
