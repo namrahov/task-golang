@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -36,7 +35,7 @@ var whitelist = map[string][]string{
 	"POST": {"/v1/users/login", "/v1/users/register"},
 }
 
-func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
+func AuthMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("siledi0")
@@ -80,7 +79,7 @@ func AuthMiddleware(redisClient *redis.Client) func(http.Handler) http.Handler {
 
 			// Extract Authorization Header
 			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") || !existByToken(ctx, authHeader) {
 				http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
 				return
 			}
@@ -221,4 +220,21 @@ func matchPattern(pattern, requestURI string) bool {
 		return false
 	}
 	return matched
+}
+
+// ExistByToken checks if a token exists in Redis
+func existByToken(ctx context.Context, token string) bool {
+	// Construct the token index key
+	tokenIndexKey := fmt.Sprintf("tokenIndex:%s", token)
+
+	// Check if the key exists in Redis
+	exists, err := repo.RedisClient.Exists(ctx, tokenIndexKey).Result()
+	if err != nil {
+		_ = fmt.Errorf("error checking if token exists in Redis: %w", err)
+		return false
+	}
+
+	// Redis EXISTS command returns the number of keys that exist (0 or 1 in this case)
+	fmt.Println(exists > 0)
+	return exists > 0
 }

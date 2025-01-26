@@ -61,14 +61,14 @@ func main() {
 	}
 
 	// Initialize Redis client
-	redisClient := repo.InitRedis()
+	repo.InitRedis()
 
 	// Create a new Gorilla Mux router
 	router := mux.NewRouter()
 
 	// Add middlewares
 	router.Use(mid.Recoverer)
-	router.Use(middleware.AuthMiddleware(redisClient))
+	router.Use(middleware.AuthMiddleware())
 
 	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
 	handler.UserHandler(router)

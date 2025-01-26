@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strconv"
 	"task-golang/config"
 	"task-golang/mapper"
 	"task-golang/model"
@@ -242,7 +243,6 @@ func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestD
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign the token with a secret key
-	//secretKey := "your_secret_key_here" // Replace with your secure key
 	signedToken, err := token.SignedString([]byte(config.Props.JwtSecret))
 	if err != nil {
 		return nil, &model.ErrorResponse{
@@ -255,6 +255,16 @@ func (us *UserService) Authenticate(ctx context.Context, dto *model.AuthRequestD
 	// Prepare the response
 	jwtToken := &model.JwtToken{
 		Token: signedToken,
+	}
+
+	errSaveToken := us.TokenRepo.SaveToken(ctx,
+		mapper.BuildToken(signedToken,
+			user,
+			dto.RememberMe,
+			stringToInt64(config.Props.TokenLifetime),
+			stringToInt64(config.Props.TokenExtendedLifetime)))
+	if errSaveToken != nil {
+		return nil, nil
 	}
 
 	logger.Info("ActionLog.Authenticate.end")
@@ -289,18 +299,12 @@ func (us *UserService) activateIfInactiveLess30Days(user *model.User) error {
 	return nil
 }
 
-//func (us *UserService) CheckPermission(roles []string, requestURI, httpMethod string) bool {
-//	permissions, err := us.UserRepo.GetPermissions(roles)
-//	if err != nil {
-//		log.Errorf("Error fetching permissions: %v", err)
-//		return false
-//	}
-//
-//	// Check if the request URI and method match any of the permissions
-//	for _, permission := range permissions {
-//		if permission.Url == requestURI && strings.EqualFold(permission.HttpMethod, httpMethod) {
-//			return true
-//		}
-//	}
-//	return false
-//}
+func stringToInt64(s string) int64 {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		// Handle the error, e.g., log it or return it
+		log.Fatalf("Failed to parse TokenLifetime: %v", err)
+	}
+
+	return i
+}

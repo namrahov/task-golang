@@ -17,3 +17,18 @@ func BuildActivationToken(activationToken string, userId int64) *model.Token {
 
 	return token
 }
+
+// BuildToken creates a Token based on the provided parameters.
+func BuildToken(token string, user *model.User, rememberMe bool, tokenLifeTime, tokenExtendedLifeTime int64) *model.Token {
+	ttl := tokenLifeTime * 60
+	if rememberMe {
+		ttl = tokenExtendedLifeTime * 60
+	}
+
+	return &model.Token{
+		Token:     "Bearer " + token,
+		UserID:    user.Id,
+		CreatedAt: time.Now(),
+		TTL:       ttl,
+	}
+}
