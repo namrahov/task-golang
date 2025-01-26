@@ -42,6 +42,35 @@ info:
   title: Your API Title
   version: "1.0"
 paths:
+  /v1/users/activate:
+    get:
+      consumes:
+      - application/json
+      description: Activates a user account using the provided activation token.
+      parameters:
+      - description: Activation token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: User successfully activated
+          schema:
+            type: string
+        "400":
+          description: Token is required
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Activate user account
+      tags:
+      - User
   /v1/users/login:
     post:
       consumes:

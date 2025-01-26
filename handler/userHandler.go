@@ -106,6 +106,17 @@ func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// active activates a user account.
+// @Summary Activate user account
+// @Description Activates a user account using the provided activation token.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param token query string true "Activation token"
+// @Success 204 {string} string "User successfully activated"
+// @Failure 400 {string} string "Token is required"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/users/activate [get]
 func (h *userHandler) active(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
