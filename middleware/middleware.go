@@ -32,7 +32,7 @@ var headers = []string{
 
 // Define the whitelist
 var whitelist = map[string][]string{
-	"GET":  {"/v1/users/active"},
+	"GET":  {"/v1/users/active", "/swagger/*"},
 	"POST": {"/v1/users/login", "/v1/users/register"},
 }
 

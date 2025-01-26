@@ -47,6 +47,19 @@ func (h *userHandler) demo(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Demo isledi senik")
 }
 
+// authenticate handles user authentication and generates a JWT token.
+//
+// @Summary      Authenticate user
+// @Description  Authenticates a user by validating their credentials and returns a JWT token upon success.
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        authRequestDto body model.AuthRequestDto true "authRequestDto"
+// @Success      200 {object} model.JwtToken "JWT Token response"
+// @Failure      400 {object} model.ErrorResponse "Bad Request"
+// @Failure      401 {object} model.ErrorResponse "Unauthorized"
+// @Failure      500 {object} model.ErrorResponse "Internal Server Error"
+// @Router       /v1/users/login [post]
 func (h *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
 	var dto *model.AuthRequestDto
 	err := util.DecodeBody(w, r, &dto)
