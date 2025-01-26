@@ -13,7 +13,8 @@ type User struct {
 	InactivatedDate    *time.Time `gorm:"column:inactivated_date" json:"inactivatedDate,omitempty"`
 	FullName           string     `gorm:"column:full_name" json:"fullName"`
 	Description        string     `gorm:"column:description" json:"description"`
-	Roles              []*Role    `gorm:"many2many:users_roles;joinForeignKey:UserID;joinReferences:RoleID" json:"roles"`
+	Roles              []*Role    `gorm:"many2many:users_roles;joinForeignKey:UserId;joinReferences:RoleId" json:"roles"`
+	Boards             []*Board   `gorm:"many2many:users_boards;joinForeignKey:UserId;joinReferences:BoardId" json:"boards"`
 	CreatedAt          time.Time  `gorm:"column:created_at" json:"-"`
 	UpdatedAt          time.Time  `gorm:"column:updated_at" json:"-"`
 }
