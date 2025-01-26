@@ -6,8 +6,10 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"net/http"
 	"task-golang/config"
+	_ "task-golang/docs"
 	"task-golang/handler"
 	"task-golang/middleware"
 	"task-golang/repo"
@@ -17,48 +19,66 @@ var opts struct {
 	Profile string `short:"p" long:"profile" default:"dev" description:"Application run profile"`
 }
 
+// @title           Your API Title
+// @version         1.0
+// @description     This is a sample API server.
+// @termsOfService  http://your.terms.of.service.url
+
+// @contact.name   API Support
+// @contact.url    http://www.your-support-url.com
+// @contact.email  support@your-email.com
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:9093
+// @BasePath  /
+
+// @schemes   http https
 func main() {
-	// This code snippet parses command-line flags into the 'opts' variable and handles any parsing errors by panicking.
+	// Parse flags into the 'opts' variable and handle errors
 	_, err := flags.Parse(&opts)
 	if err != nil {
 		panic(err)
 	}
 
-	// This code initializes the logger for the application.
+	// Initialize logger and environment variables
 	initLogger()
-
-	// This code initializes environment variables by calling the initEnvVars function.
 	initEnvVars()
 
-	// This line of code loads the configuration settings for the application by calling the LoadConfig function from the config package.
+	// Load application configuration
 	config.LoadConfig()
 
-	// This code responsible for setting or applying the logging level for the application.
+	// Apply the configured logging level
 	applyLogLevel()
 
-	log.Info("Application is starting with profile: ", opts.Profile)
+	log.Println("Application is starting with profile:", opts.Profile)
 
-	// This code attempts to manipulate db
+	// Perform database migration
 	err = repo.MigrateDb()
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Initialize Redis client
 	redisClient := repo.InitRedis()
 
-	// This code initializes a new HTTP router using the Gorilla Mux package
+	// Create a new Gorilla Mux router
 	router := mux.NewRouter()
 
-	// This line of code applies a middleware function called "Recoverer" from the "mid" package to the router.
+	// Add middlewares
 	router.Use(mid.Recoverer)
-
 	router.Use(middleware.AuthMiddleware(redisClient))
-	// sep application-specific handlers by calling the ApplicationHandler function with the router as an argument.
+
+	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
 	handler.UserHandler(router)
 
-	log.Info("Starting server at port: ", config.Props.Port)
+	// Swagger handler
+	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
-	// This code starts an HTTP server that listens on the specified port from the configuration properties and uses the provided router to handle incoming requests.
+	log.Println("Starting server at port:", config.Props.Port)
+
+	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))
 }
 
