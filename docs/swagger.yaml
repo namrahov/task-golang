@@ -1,0 +1,76 @@
+basePath: /
+definitions:
+  model.AuthRequestDto:
+    properties:
+      emailOrNickname:
+        type: string
+      password:
+        type: string
+      rememberMe:
+        type: boolean
+    type: object
+  model.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  model.JwtToken:
+    properties:
+      token:
+        type: string
+    type: object
+host: localhost:9093
+info:
+  contact:
+    email: support@your-email.com
+    name: API Support
+    url: http://www.your-support-url.com
+  description: This is a sample API server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://your.terms.of.service.url
+  title: Your API Title
+  version: "1.0"
+paths:
+  /v1/users/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user by validating their credentials and returns
+        a JWT token upon success.
+      parameters:
+      - description: authRequestDto
+        in: body
+        name: authRequestDto
+        required: true
+        schema:
+          $ref: '#/definitions/model.AuthRequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT Token response
+          schema:
+            $ref: '#/definitions/model.JwtToken'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Authenticate user
+      tags:
+      - Authentication
+schemes:
+- http
+- https
+swagger: "2.0"

@@ -70,24 +70,16 @@ func main() {
 	router.Use(mid.Recoverer)
 	router.Use(middleware.AuthMiddleware(redisClient))
 
-	// Set up routes
-	setupRoutes(router)
+	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
+	handler.UserHandler(router)
+
+	// Swagger handler
+	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 
 	log.Println("Starting server at port:", config.Props.Port)
 
 	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))
-}
-
-// Function to define and register routes
-func setupRoutes(router *mux.Router) {
-	// sep application-specific handlers by calling the ApplicationHandler function with the router as an argument.
-	handler.UserHandler(router)
-
-	// Swagger handler
-	//router.PathPrefix("/swagger").Handler(http.StripPrefix("/swagger", http.FileServer(http.Dir("./swagger"))))
-	// Example with Gorilla Mux:
-	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 }
 
 func initLogger() {
