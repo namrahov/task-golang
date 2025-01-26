@@ -75,6 +75,52 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/users/register": {
+            "post": {
+                "description": "Registers a new user with the provided information.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "userRegistrationDto",
+                        "name": "userRegistrationDto",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UserRegistrationDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "User successfully registered",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request data",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -107,6 +153,17 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UserRegistrationDto": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }

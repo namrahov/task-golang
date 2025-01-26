@@ -78,6 +78,17 @@ func (h *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(jwtToken)
 }
 
+// register handles user registration.
+// @Summary Register a new user
+// @Description Registers a new user with the provided information.
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param userRegistrationDto body model.UserRegistrationDto true "userRegistrationDto"
+// @Success 201 {string} string "User successfully registered"
+// @Failure 400 {object} model.ErrorResponse "Invalid request data"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/users/register [post]
 func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
 	var dto *model.UserRegistrationDto
 	err := util.DecodeBody(w, r, &dto)

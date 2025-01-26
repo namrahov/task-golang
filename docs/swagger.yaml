@@ -21,6 +21,13 @@ definitions:
       token:
         type: string
     type: object
+  model.UserRegistrationDto:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
 host: localhost:9093
 info:
   contact:
@@ -70,6 +77,36 @@ paths:
       summary: Authenticate user
       tags:
       - Authentication
+  /v1/users/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with the provided information.
+      parameters:
+      - description: userRegistrationDto
+        in: body
+        name: userRegistrationDto
+        required: true
+        schema:
+          $ref: '#/definitions/model.UserRegistrationDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User successfully registered
+          schema:
+            type: string
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - User
 schemes:
 - http
 - https
