@@ -1,21 +1,21 @@
 package repo
 
 import (
-	"gorm.io/gorm"
 	"task-golang/model"
 )
 
 type IBoardRepo interface {
-	SaveBoard(tx *gorm.DB, board *model.Board) (*model.Board, error)
+	SaveBoard(board *model.Board) (*model.Board, error)
 }
 
 type BoardRepo struct {
 }
 
-func (r BoardRepo) SaveBoard(tx *gorm.DB, board *model.Board) (*model.Board, error) {
-	err := tx.Create(board).Error
-	if err != nil {
-		return nil, err
+func (r BoardRepo) SaveBoard(board *model.Board) (*model.Board, error) {
+	result := Db.Create(board)
+	if result.Error != nil {
+		return nil, result.Error
 	}
+
 	return board, nil
 }

@@ -20,7 +20,9 @@ func BoardHandler(router *mux.Router) *mux.Router {
 		BoardService: &service.BoardService{
 			BoardRepo: &repo.BoardRepo{},
 			UserRepo:  &repo.UserRepo{},
-			UserUtil:  &util.UserUtil{},
+			UserUtil: &util.UserUtil{
+				UserRepo: &repo.UserRepo{},
+			},
 		},
 	}
 
@@ -29,6 +31,17 @@ func BoardHandler(router *mux.Router) *mux.Router {
 	return router
 }
 
+// @Summary Create a new board
+// @Description Creates a new board based on the provided data
+// @Tags Boards
+// @Accept  json
+// @Produce  json
+// @Param BoardRequestDto body model.BoardRequestDto true "Board Request Data"
+// @Success 200 {string} string "Board created successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/boards [post]
+// @Security     BearerAuth
 func (h *boardHandler) create(w http.ResponseWriter, r *http.Request) {
 	var dto *model.BoardRequestDto
 	err := util.DecodeBody(w, r, &dto)

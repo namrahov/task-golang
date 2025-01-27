@@ -5,7 +5,6 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"strconv"
 	"task-golang/model"
 	"task-golang/repo"
 )
@@ -20,23 +19,9 @@ type UserUtil struct {
 
 func (u *UserUtil) GetUserFromRequest(ctx context.Context) (*model.User, *model.ErrorResponse) {
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
-	userIdString, ok := ctx.Value(model.ContextUserID).(string)
+	userId, ok := ctx.Value(model.ContextUserID).(int64)
 	if !ok {
-		logger.Warn("ActionLog.CreateBoard.missingUserId")
-		return nil, &model.ErrorResponse{
-			Error:   fmt.Sprintf("%s.user_id_is_missing", model.Exception),
-			Message: "User id is missing",
-			Code:    http.StatusNotFound,
-		}
-	}
-
-	userId, err := strconv.ParseInt(userIdString, 10, 64)
-	if err != nil {
-		return nil, &model.ErrorResponse{
-			Error:   fmt.Sprintf("%s.user_id_can_not_be_parsed", model.Exception),
-			Message: "Can parse string to int",
-			Code:    http.StatusNotFound,
-		}
+		logger.Info("userIdString:", userId)
 	}
 
 	user, err := u.UserRepo.FindUserById(userId)

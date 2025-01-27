@@ -30,32 +30,7 @@ func (bs *BoardService) CreateBoard(ctx context.Context, dto *model.BoardRequest
 		return errGetUser
 	}
 
-	tx := repo.BeginTransaction()
-	if tx.Error != nil {
-		return &model.ErrorResponse{
-			Error:   fmt.Sprintf("%s.transaction-begin-failed", model.Exception),
-			Message: tx.Error.Error(),
-			Code:    http.StatusInternalServerError,
-		}
-	}
-
-	// Handle transaction rollback/commit with deferred function
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback() // Rollback on panic
-			panic(p)
-		} else if tx.Error != nil {
-			_ = tx.Rollback() // Rollback on error
-		} else {
-			err := tx.Commit() // Commit if no error
-			if err != nil {
-				//logger.WithError(err).Error("Transaction commit failed")
-				fmt.Println("Transaction commit failed")
-			}
-		}
-	}()
-
-	_, err := bs.BoardRepo.SaveBoard(tx, mapper.BuildBoard(dto.Name, user.UserName))
+	_, err := bs.BoardRepo.SaveBoard(mapper.BuildBoard(dto.Name, user.UserName))
 
 	if err != nil {
 		return &model.ErrorResponse{

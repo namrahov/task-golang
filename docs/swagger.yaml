@@ -9,6 +9,11 @@ definitions:
       rememberMe:
         type: boolean
     type: object
+  model.BoardRequestDto:
+    properties:
+      name:
+        type: string
+    type: object
   model.ErrorResponse:
     properties:
       error:
@@ -44,6 +49,38 @@ info:
   title: Your API Title
   version: "1.0"
 paths:
+  /v1/boards:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new board based on the provided data
+      parameters:
+      - description: Board Request Data
+        in: body
+        name: BoardRequestDto
+        required: true
+        schema:
+          $ref: '#/definitions/model.BoardRequestDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Board created successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new board
+      tags:
+      - Boards
   /v1/users/activate:
     get:
       consumes:
