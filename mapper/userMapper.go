@@ -24,6 +24,7 @@ func BuildUser(ctx context.Context, dto *model.UserRegistrationDto) (*model.User
 
 	user := &model.User{
 		Email:    dto.Email,
+		UserName: dto.Username,
 		Password: ps,
 		IsActive: false,
 	}

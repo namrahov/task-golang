@@ -243,6 +243,9 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         }
@@ -259,8 +262,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:9093",
-	BasePath:         "/",
+	Host:             "{swaggerHost}  // Dynamic host placeholder",
+	BasePath:         "{swaggerBasePath}  // Dynamic base path placeholder",
 	Schemes:          []string{"http", "https"},
 	Title:            "Your API Title",
 	Description:      "This is a sample API server.",

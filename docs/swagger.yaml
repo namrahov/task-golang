@@ -1,4 +1,4 @@
-basePath: /
+basePath: '{swaggerBasePath}  // Dynamic base path placeholder'
 definitions:
   model.AuthRequestDto:
     properties:
@@ -27,8 +27,10 @@ definitions:
         type: string
       password:
         type: string
+      username:
+        type: string
     type: object
-host: localhost:9093
+host: '{swaggerHost}  // Dynamic host placeholder'
 info:
   contact:
     email: support@your-email.com

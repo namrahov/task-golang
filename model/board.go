@@ -15,3 +15,7 @@ type Board struct {
 func (Board) TableName() string {
 	return "boards"
 }
+
+type BoardRequestDto struct {
+	Name string `json:"name"`
+}

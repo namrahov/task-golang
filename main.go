@@ -75,6 +75,7 @@ func main() {
 
 	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
 	handler.UserHandler(router)
+	handler.BoardHandler(router)
 
 	// Swagger handler
 	// Read environment variables for host and base path

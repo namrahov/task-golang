@@ -93,6 +93,7 @@ func (h *userHandler) authenticate(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/users/register [post]
 func (h *userHandler) register(w http.ResponseWriter, r *http.Request) {
 	var dto *model.UserRegistrationDto
+	fmt.Println("Register isledi senik")
 	err := util.DecodeBody(w, r, &dto)
 	if err != nil {
 		return

@@ -19,8 +19,8 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:9093",
-    "basePath": "/",
+    "host": "{swaggerHost}  // Dynamic host placeholder",
+    "basePath": "{swaggerBasePath}  // Dynamic base path placeholder",
     "paths": {
         "/v1/users/activate": {
             "get": {
@@ -240,6 +240,9 @@
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

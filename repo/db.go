@@ -55,6 +55,10 @@ func MigrateDb() error {
 	return nil
 }
 
+func BeginTransaction() *gorm.DB {
+	return Db.Begin()
+}
+
 func InitRedis() *redis.Client {
 	// Create a Redis client
 	RedisClient = redis.NewClient(&redis.Options{
