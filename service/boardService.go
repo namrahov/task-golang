@@ -13,6 +13,7 @@ import (
 
 type IBoardService interface {
 	CreateBoard(ctx context.Context, userRegistrationDto *model.BoardRequestDto) *model.ErrorResponse
+	GiveAccessToBoard(ctx context.Context, userId int64, boardId int64) *model.ErrorResponse
 }
 
 type BoardService struct {
@@ -41,5 +42,22 @@ func (bs *BoardService) CreateBoard(ctx context.Context, dto *model.BoardRequest
 	}
 
 	logger.Info("ActionLog.CreateBoard.end")
+	return nil
+}
+
+func (bs *BoardService) GiveAccessToBoard(ctx context.Context, userId int64, boardId int64) *model.ErrorResponse {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.GiveAccessToBoard.start")
+
+	err := bs.BoardRepo.SaveUserBoard(ctx, userId, boardId)
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-save-user-board", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	logger.Info("ActionLog.GiveAccessToBoard.end")
 	return nil
 }
