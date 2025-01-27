@@ -36,7 +36,7 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 	logger.Info("ActionLog.Register.start")
 
 	// Begin GORM transaction
-	tx := us.UserRepo.BeginTransaction()
+	tx := repo.BeginTransaction()
 	if tx.Error != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.transaction-begin-failed", model.Exception),

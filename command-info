@@ -1,17 +1,20 @@
 1) install swagger
-a) Install required packages:
+
+a) go install github.com/swaggo/swag/cmd/swag@latest
+
+b) Install required packages:
 
 go get github.com/swaggo/http-swagger
 go get github.com/swaggo/files
 
 
-b) Import them in your Go code:
+c) Import them in your Go code:
 
 import (
     httpSwagger "github.com/swaggo/http-swagger"
     _ "your-module-path/docs" // important: import the docs package
 )
 
-c) swag init
+d) swag init
 
-d) http://localhost:9093/swagger/index.html
+e) http://localhost:9093/swagger/index.html

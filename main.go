@@ -6,7 +6,6 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"net/http"
 	"task-golang/config"
 	_ "task-golang/docs"
@@ -75,17 +74,10 @@ func main() {
 
 	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
 	handler.UserHandler(router)
+	handler.BoardHandler(router)
 
 	// Swagger handler
-	// Read environment variables for host and base path
-	swaggerHost := config.Props.SwaggerHost
-	swaggerBasePath := config.Props.SwaggerBasePath
-	urlHeader := config.Props.UrlHeader
-	// Set dynamic Swagger options
-	httpSwagger.URL(urlHeader + swaggerHost + swaggerBasePath + "/swagger/doc.json") // Set the Swagger endpoint dynamically
-
-	// Serve Swagger
-	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
+	config.InitSwagger(router)
 
 	log.Println("Starting server at port:", config.Props.Port)
 
