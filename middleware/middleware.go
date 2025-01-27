@@ -32,7 +32,7 @@ var headers = []string{
 // Define the whitelist
 var whitelist = map[string][]string{
 	"GET":  {"/v1/users/active", "/swagger/*"},
-	"POST": {"/v1/users/login", "/v1/users/register"},
+	"POST": {"/v1/users/login", "/v1/users/register", "/v1/boards"},
 }
 
 func AuthMiddleware() func(http.Handler) http.Handler {
