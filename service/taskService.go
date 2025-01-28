@@ -38,7 +38,6 @@ func (ts *TaskService) CreateTask(ctx context.Context, dto *model.TaskRequestDto
 	if err != nil {
 		return err
 	}
-
 	var task = mapper.BuildTask(dto, user, board)
 	_, errSaveTask := ts.TaskRepo.SaveTask(task)
 	if errSaveTask != nil {

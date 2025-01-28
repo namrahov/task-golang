@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -22,7 +21,9 @@ func TaskHandler(router *mux.Router) *mux.Router {
 		TaskService: &service.TaskService{
 			TaskRepo:  &repo.TaskRepo{},
 			BoardRepo: &repo.BoardRepo{},
-			UserUtil:  &util.UserUtil{},
+			UserUtil: &util.UserUtil{
+				UserRepo: &repo.UserRepo{},
+			},
 		},
 	}
 
@@ -45,7 +46,6 @@ func TaskHandler(router *mux.Router) *mux.Router {
 // @Security BearerAuth
 func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 	boardIdStr := mux.Vars(r)["boardId"]
-	fmt.Println("boardid=", boardIdStr)
 	boardId, err := strconv.ParseInt(boardIdStr, 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

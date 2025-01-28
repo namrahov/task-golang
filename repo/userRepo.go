@@ -15,7 +15,6 @@ type IUserRepo interface {
 	UpdateUser(user *model.User) (*model.User, error)
 	AddRolesToUser(tx *gorm.DB, userId int64, roles []*model.Role) error
 	FindActiveUserByEmailOrUsername(emailOrNickname string) (*model.User, error)
-	//BeginTransaction() *gorm.DB
 }
 
 type UserRepo struct {
