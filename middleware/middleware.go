@@ -183,7 +183,7 @@ func checkPermission(roles []string, requestURI, httpMethod string) bool {
 
 	// Check if the request URI and method match any of the permissions
 	for _, permission := range permissions {
-		fmt.Println(permission)
+		fmt.Println("permission=", permission, " =", matchPattern(permission.URL, requestURI))
 		if matchPattern(permission.URL, requestURI) && strings.EqualFold(permission.HTTPMethod, httpMethod) {
 			return true
 		}
@@ -214,13 +214,19 @@ func isWhitelisted(method, url string) bool {
 
 // matchPattern checks if a request URI matches a permission pattern
 func matchPattern(pattern, requestURI string) bool {
+	// Remove query parameters (everything after '?')
+	cleanedRequestURI := strings.Split(requestURI, "?")[0]
+
 	// Replace placeholders in the pattern with regex patterns
 	regexPattern := "^" + strings.ReplaceAll(pattern, "{id}", "\\d+") + "$"
-	matched, err := regexp.MatchString(regexPattern, requestURI)
+
+	// Match the cleaned requestURI against the compiled regex
+	matched, err := regexp.MatchString(regexPattern, cleanedRequestURI)
 	if err != nil {
 		log.Errorf("Error matching pattern: %v", err)
 		return false
 	}
+
 	return matched
 }
 
