@@ -216,13 +216,17 @@ func matchPattern(pattern, requestURI string) bool {
 	// Remove query parameters (everything after '?')
 	cleanedRequestURI := strings.Split(requestURI, "?")[0]
 
-	// Replace placeholders in the pattern with regex patterns
-	regexPattern := "^" + strings.ReplaceAll(pattern, "{id}", "\\d+") + "$"
+	// Replace all placeholders in the pattern with a generic regex for non-slash values
+	regexPattern := "^" + regexp.MustCompile(`\{[^/}]+\}`).ReplaceAllString(pattern, `[^/]+`) + "$"
 
-	// Match the cleaned requestURI against the compiled regex
+	// Log the generated regex pattern for debugging
+	log.Printf("Generated regex pattern: %s", regexPattern)
+	log.Printf("Cleaned request URI: %s", cleanedRequestURI)
+
+	// Match the cleaned request URI against the compiled regex
 	matched, err := regexp.MatchString(regexPattern, cleanedRequestURI)
 	if err != nil {
-		log.Errorf("Error matching pattern: %v", err)
+		log.Printf("Error matching pattern: %v", err)
 		return false
 	}
 

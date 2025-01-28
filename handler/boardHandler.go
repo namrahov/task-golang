@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -29,6 +30,7 @@ func BoardHandler(router *mux.Router) *mux.Router {
 
 	router.HandleFunc(config.RootPath+"/boards", h.create).Methods("POST")
 	router.HandleFunc(config.RootPath+"/boards/{id}/access", h.giveAccess).Methods("POST")
+	router.HandleFunc(config.RootPath+"/boards/{userId}", h.getUserBoards).Methods("GET")
 
 	return router
 }
@@ -96,4 +98,34 @@ func (h *boardHandler) giveAccess(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+}
+
+// @Summary Get user boards
+// @Description Retrieve all boards associated with a specific user
+// @Tags Boards
+// @Accept  json
+// @Produce  json
+// @Param userId path int true "User ID"
+// @Success 200 {array} model.Board "List of user boards"
+// @Failure 400 {object} model.ErrorResponse "Invalid request"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/boards/{userId} [get]
+// @Security BearerAuth
+func (h *boardHandler) getUserBoards(w http.ResponseWriter, r *http.Request) {
+	userIdStr := mux.Vars(r)["userId"]
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	usersBoards, errCreate := h.BoardService.GetUserBoards(r.Context(), userId)
+	if errCreate != nil {
+		util.ErrorRespondWriterJSON(w, errCreate)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(usersBoards)
 }

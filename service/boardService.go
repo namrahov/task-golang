@@ -14,6 +14,7 @@ import (
 type IBoardService interface {
 	CreateBoard(ctx context.Context, userRegistrationDto *model.BoardRequestDto) *model.ErrorResponse
 	GiveAccessToBoard(ctx context.Context, userId int64, boardId int64) *model.ErrorResponse
+	GetUserBoards(ctx context.Context, userId int64) (*[]model.BoardResponseDto, *model.ErrorResponse)
 }
 
 type BoardService struct {
@@ -60,4 +61,21 @@ func (bs *BoardService) GiveAccessToBoard(ctx context.Context, userId int64, boa
 
 	logger.Info("ActionLog.GiveAccessToBoard.end")
 	return nil
+}
+
+func (bs *BoardService) GetUserBoards(ctx context.Context, userId int64) (*[]model.BoardResponseDto, *model.ErrorResponse) {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.GetUsersBoards.start")
+
+	boards, err := bs.BoardRepo.GetUserBoards(userId)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-get-users-boards", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	logger.Info("ActionLog.GetUsersBoards.start")
+	return mapper.BuildBoards(boards), nil
 }

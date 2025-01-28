@@ -10,6 +10,7 @@ import (
 type IBoardRepo interface {
 	SaveBoard(board *model.Board) (*model.Board, error)
 	SaveUserBoard(ctx context.Context, userId int64, boardId int64) error
+	GetUserBoards(userId int64) (*[]model.Board, error)
 }
 
 type BoardRepo struct {
@@ -53,4 +54,18 @@ func (r *BoardRepo) SaveUserBoard(ctx context.Context, userId int64, boardId int
 	}
 
 	return nil
+}
+
+func (r *BoardRepo) GetUserBoards(userId int64) (*[]model.Board, error) {
+	var boards []model.Board
+
+	// Query the boards associated with the given userId
+	if err := Db.Joins("JOIN users_boards ON users_boards.board_id = boards.id").
+		Where("users_boards.user_id = ?", userId).
+		Preload("Users"). // Preload the associated users for each board
+		Find(&boards).Error; err != nil {
+		return nil, err
+	}
+
+	return &boards, nil
 }

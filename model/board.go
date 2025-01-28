@@ -19,3 +19,8 @@ func (Board) TableName() string {
 type BoardRequestDto struct {
 	Name string `json:"name"`
 }
+
+type BoardResponseDto struct {
+	Id   int64
+	Name string
+}

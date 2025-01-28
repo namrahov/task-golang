@@ -9,6 +9,19 @@ definitions:
       rememberMe:
         type: boolean
     type: object
+  model.Board:
+    properties:
+      createdBy:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      users:
+        items:
+          $ref: '#/definitions/model.User'
+        type: array
+    type: object
   model.BoardRequestDto:
     properties:
       name:
@@ -24,6 +37,57 @@ definitions:
   model.JwtToken:
     properties:
       token:
+        type: string
+    type: object
+  model.Permission:
+    properties:
+      description:
+        type: string
+      httpMethod:
+        type: string
+      id:
+        type: integer
+      url:
+        type: string
+    type: object
+  model.Role:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/model.Permission'
+        type: array
+    type: object
+  model.User:
+    properties:
+      acceptNotification:
+        type: boolean
+      boards:
+        items:
+          $ref: '#/definitions/model.Board'
+        type: array
+      description:
+        type: string
+      email:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: integer
+      inactivatedDate:
+        type: string
+      isActive:
+        type: boolean
+      phoneNumber:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/model.Role'
+        type: array
+      userName:
         type: string
     type: object
   model.UserRegistrationDto:
@@ -115,6 +179,39 @@ paths:
       security:
       - BearerAuth: []
       summary: Give access to a board
+      tags:
+      - Boards
+  /v1/boards/{userId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all boards associated with a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user boards
+          schema:
+            items:
+              $ref: '#/definitions/model.Board'
+            type: array
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user boards
       tags:
       - Boards
   /v1/users/activate:
