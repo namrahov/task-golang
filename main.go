@@ -75,6 +75,7 @@ func main() {
 	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
 	handler.UserHandler(router)
 	handler.BoardHandler(router)
+	handler.TaskHandler(router)
 
 	// Swagger handler
 	config.InitSwagger(router)

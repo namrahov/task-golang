@@ -33,3 +33,9 @@ const (
 	Medium Priority = "MEDIUM"
 	Low    Priority = "LOW"
 )
+
+type TaskRequestDto struct {
+	Name     string
+	Priority Priority
+	Deadline string
+}
