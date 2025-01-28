@@ -183,7 +183,6 @@ func checkPermission(roles []string, requestURI, httpMethod string) bool {
 
 	// Check if the request URI and method match any of the permissions
 	for _, permission := range permissions {
-		fmt.Println("permission=", permission, " =", matchPattern(permission.URL, requestURI))
 		if matchPattern(permission.URL, requestURI) && strings.EqualFold(permission.HTTPMethod, httpMethod) {
 			return true
 		}
