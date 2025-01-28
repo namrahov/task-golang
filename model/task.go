@@ -45,7 +45,7 @@ const (
 )
 
 type TaskRequestDto struct {
-	Name     string
-	Priority Priority
-	Deadline string
+	Name     string   `json:"name"`
+	Priority Priority `json:"priority"`
+	Deadline string   `json:"deadline"`
 }

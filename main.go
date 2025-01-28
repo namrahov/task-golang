@@ -80,6 +80,8 @@ func main() {
 	// Swagger handler
 	config.InitSwagger(router)
 
+	config.InitRabbitMq()
+
 	log.Println("Starting server at port:", config.Props.Port)
 
 	// Start the HTTP server
