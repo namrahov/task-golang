@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 	"task-golang/config"
 	"task-golang/model"
 	"task-golang/repo"
@@ -18,28 +19,37 @@ func TaskHandler(router *mux.Router) *mux.Router {
 
 	h := &taskHandler{
 		TaskService: &service.TaskService{
-			TaskRepo: &repo.TaskRepo{},
+			TaskRepo:  &repo.TaskRepo{},
+			BoardRepo: &repo.BoardRepo{},
+			UserUtil:  &util.UserUtil{},
 		},
 	}
 
-	router.HandleFunc(config.RootPath+"/tasks", h.createTask).Methods("POST")
+	router.HandleFunc(config.RootPath+"/tasks/{boardId}", h.createTask).Methods("POST")
 
 	return router
 }
 
 func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
-	var dto *model.BoardRequestDto
-	err := util.DecodeBody(w, r, &dto)
+	boardIdStr := mux.Vars(r)["id"]
+	boardId, err := strconv.ParseInt(boardIdStr, 10, 64)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	//errCreate := h.BoardService.CreateBoard(r.Context(), dto)
-	//if errCreate != nil {
-	//	util.ErrorRespondWriterJSON(w, errCreate)
-	//	return
-	//}
+	var dto *model.TaskRequestDto
+	errGetDto := util.DecodeBody(w, r, &dto)
+	if errGetDto != nil {
+		return
+	}
+
+	errCreate := h.TaskService.CreateTask(r.Context(), dto, boardId)
+	if errCreate != nil {
+		util.ErrorRespondWriterJSON(w, errCreate)
+		return
+	}
 
 	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
