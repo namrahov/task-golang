@@ -216,6 +216,7 @@ func matchPattern(pattern, requestURI string) bool {
 	// Remove query parameters (everything after '?')
 	cleanedRequestURI := strings.Split(requestURI, "?")[0]
 
+	fmt.Println("requestURI=", cleanedRequestURI)
 	// Replace all placeholders in the pattern with a generic regex for non-slash values
 	regexPattern := "^" + regexp.MustCompile(`\{[^/}]+\}`).ReplaceAllString(pattern, `[^/]+`) + "$"
 

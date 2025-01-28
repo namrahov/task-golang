@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	log "github.com/sirupsen/logrus"
-	"task-golang/mapper"
+	"net/http"
+	mapper "task-golang/mapper"
 	"task-golang/model"
 	"task-golang/repo"
 	"task-golang/util"
@@ -23,12 +25,29 @@ func (ts *TaskService) CreateTask(ctx context.Context, dto *model.TaskRequestDto
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.CreateTask.start")
 
+	board, errGetBoard := ts.BoardRepo.GetBoardById(boardId)
+	if errGetBoard != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-take-board", model.Exception),
+			Message: errGetBoard.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+
 	user, err := ts.UserUtil.GetUserFromRequest(ctx)
 	if err != nil {
 		return err
 	}
 
-	mapper.BuildTask(dto, user)
+	var task = mapper.BuildTask(dto, user, board)
+	_, errSaveTask := ts.TaskRepo.SaveTask(task)
+	if errSaveTask != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-save-task", model.Exception),
+			Message: errSaveTask.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
 	logger.Info("ActionLog.CreateTask.end")
 	return nil
 }

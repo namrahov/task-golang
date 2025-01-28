@@ -50,6 +50,16 @@ definitions:
       url:
         type: string
     type: object
+  model.Priority:
+    enum:
+    - HIGH
+    - MEDIUM
+    - LOW
+    type: string
+    x-enum-varnames:
+    - High
+    - Medium
+    - Low
   model.Role:
     properties:
       id:
@@ -60,6 +70,15 @@ definitions:
         items:
           $ref: '#/definitions/model.Permission'
         type: array
+    type: object
+  model.TaskRequestDto:
+    properties:
+      deadline:
+        type: string
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/model.Priority'
     type: object
   model.User:
     properties:
@@ -214,6 +233,43 @@ paths:
       summary: Get user boards
       tags:
       - Boards
+  /v1/tasks/{boardId}:
+    post:
+      consumes:
+      - application/json
+      description: Create a new task for a specific board
+      parameters:
+      - description: Board ID
+        in: path
+        name: boardId
+        required: true
+        type: integer
+      - description: Task details
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/model.TaskRequestDto'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Task created successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a task
+      tags:
+      - Tasks
   /v1/users/activate:
     get:
       consumes:

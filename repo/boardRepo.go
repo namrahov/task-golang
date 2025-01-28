@@ -9,6 +9,7 @@ import (
 
 type IBoardRepo interface {
 	SaveBoard(board *model.Board) (*model.Board, error)
+	GetBoardById(id int64) (*model.Board, error)
 	SaveUserBoard(ctx context.Context, userId int64, boardId int64) error
 	GetUserBoards(userId int64) (*[]model.Board, error)
 }
@@ -23,6 +24,19 @@ func (r BoardRepo) SaveBoard(board *model.Board) (*model.Board, error) {
 	}
 
 	return board, nil
+}
+
+// GetBoardById retrieves a board by its ID
+func (r *BoardRepo) GetBoardById(id int64) (*model.Board, error) {
+	var board model.Board
+	result := Db.First(&board, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, errors.New("board not found")
+		}
+		return nil, result.Error
+	}
+	return &board, nil
 }
 
 // SaveUserBoard associates a user with a board in the users_boards join table.

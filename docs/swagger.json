@@ -181,6 +181,64 @@
                 }
             }
         },
+        "/v1/tasks/{boardId}": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new task for a specific board",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create a task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Board ID",
+                        "name": "boardId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Task details",
+                        "name": "task",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskRequestDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Task created successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/users/activate": {
             "get": {
                 "description": "Activates a user account using the provided activation token.",
@@ -437,6 +495,19 @@
                 }
             }
         },
+        "model.Priority": {
+            "type": "string",
+            "enum": [
+                "HIGH",
+                "MEDIUM",
+                "LOW"
+            ],
+            "x-enum-varnames": [
+                "High",
+                "Medium",
+                "Low"
+            ]
+        },
         "model.Role": {
             "type": "object",
             "properties": {
@@ -451,6 +522,20 @@
                     "items": {
                         "$ref": "#/definitions/model.Permission"
                     }
+                }
+            }
+        },
+        "model.TaskRequestDto": {
+            "type": "object",
+            "properties": {
+                "deadline": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "$ref": "#/definitions/model.Priority"
                 }
             }
         },

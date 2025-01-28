@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -30,8 +31,21 @@ func TaskHandler(router *mux.Router) *mux.Router {
 	return router
 }
 
+// @Summary Create a task
+// @Description Create a new task for a specific board
+// @Tags Tasks
+// @Accept  json
+// @Produce  json
+// @Param boardId path int true "Board ID"
+// @Param task body model.TaskRequestDto true "Task details"
+// @Success 201 {string} string "Task created successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/tasks/{boardId} [post]
+// @Security BearerAuth
 func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
-	boardIdStr := mux.Vars(r)["id"]
+	boardIdStr := mux.Vars(r)["boardId"]
+	fmt.Println("boardid=", boardIdStr)
 	boardId, err := strconv.ParseInt(boardIdStr, 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
