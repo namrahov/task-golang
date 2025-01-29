@@ -25,14 +25,6 @@ func GenerateActivationEmail(token string, linkType model.LinkType) model.EmailD
 		link = config.Props.UserActivationUrl + "?token=" + token
 		body = fmt.Sprintf("Hormetli, istifadeci. Saytimizda qeydiyyatdan kecdiyiniz ucun tesekkur edirik. "+
 			"Profilinizi aktivlesdirmek ucun bu linke kecin %s", link)
-	case model.ChangeEmail:
-		link = mailChangeUrl + "?token=" + token
-		body = changeEmail(link)
-	case model.ForgetPassword:
-		link = forgetPasswordUrl + "?token=" + token
-		body = forgetPasswordEmail(link)
-	case model.SetPassword:
-		body = setPasswordEmail(token)
 	}
 
 	email.Body = body

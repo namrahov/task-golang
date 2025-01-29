@@ -3,6 +3,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"task-golang/model"
@@ -15,6 +16,7 @@ type IUserRepo interface {
 	UpdateUser(user *model.User) (*model.User, error)
 	AddRolesToUser(tx *gorm.DB, userId int64, roles []*model.Role) error
 	FindActiveUserByEmailOrUsername(emailOrNickname string) (*model.User, error)
+	GetPermissions(roles []string) ([]model.Permission, error)
 }
 
 type UserRepo struct {
@@ -71,7 +73,6 @@ func (r UserRepo) UpdateUser(user *model.User) (*model.User, error) {
 	).Create(user).Error
 
 	if err != nil {
-		fmt.Println("err=", err)
 		return nil, err
 	}
 	return user, nil
@@ -114,4 +115,22 @@ func (r UserRepo) FindActiveUserByEmailOrUsername(emailOrNickname string) (*mode
 	}
 
 	return &user, nil
+}
+
+func (r UserRepo) GetPermissions(roles []string) ([]model.Permission, error) {
+	var permissions []model.Permission
+
+	err := Db.Table("permissions").
+		Select("permissions.*").
+		Joins("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
+		Joins("JOIN roles r ON r.id = rp.role_id").
+		Where("r.name IN ?", roles).
+		Find(&permissions).Error
+	if err != nil {
+		fmt.Printf("checkPermission err: %v\n", err)
+		log.Errorf("Error fetching permissions: %v", err)
+		return nil, err
+	}
+
+	return permissions, nil
 }

@@ -12,7 +12,7 @@ import (
 	"task-golang/handler"
 	"task-golang/initializer"
 	"task-golang/middleware"
-	"task-golang/rabbitMq"
+	"task-golang/rabbitmq"
 	"task-golang/repo"
 )
 
@@ -87,10 +87,10 @@ func main() {
 	// Swagger handler
 	config.InitSwagger(router)
 
+	// Run RabbitMQ consumer in a goroutine
+	go rabbitmq.InitRabbitMq(taskService)
+
 	log.Println("Starting server at port:", config.Props.Port)
-
-	go rabbitMq.InitRabbitMq(taskService) // Run RabbitMQ consumer in a goroutine
-
 	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))
 }

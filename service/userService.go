@@ -343,33 +343,22 @@ func (us *UserService) Logout(ctx context.Context) *model.ErrorResponse {
 }
 
 func (us *UserService) CheckPermission(roles []string, requestURI, httpMethod string) bool {
-	// Ensure roles is not empty to avoid SQL syntax errors
 	if len(roles) == 0 {
 		log.Errorf("Roles slice is empty, cannot check permissions.")
 		return false
 	}
 
-	var permissions []model.Permission
-
-	// Query permissions with GORM
-	err := repo.Db.Table("permissions").
-		Select("permissions.*").
-		Joins("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
-		Joins("JOIN roles r ON r.id = rp.role_id").
-		Where("r.name IN ?", roles).
-		Find(&permissions).Error
+	permissions, err := us.UserRepo.GetPermissions(roles)
 	if err != nil {
-		fmt.Printf("checkPermission err: %v\n", err)
-		log.Errorf("Error fetching permissions: %v", err)
 		return false
 	}
 
-	// Check if the request URI and method match any of the permissions
 	for _, permission := range permissions {
 		if matchPattern(permission.URL, requestURI) && strings.EqualFold(permission.HTTPMethod, httpMethod) {
 			return true
 		}
 	}
+
 	return false
 }
 
