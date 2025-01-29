@@ -1,28 +1,25 @@
-package config
+package rabbitMq
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"task-golang/model"
+	"task-golang/service"
 )
 
-func InitRabbitMq() {
-
+func InitRabbitMq(taskService *service.TaskService) {
 	// Connect to RabbitMQ server
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %s", err)
 	}
-	defer conn.Close()
 
-	// Create a channel
 	ch, err := conn.Channel()
 	if err != nil {
 		log.Fatalf("Failed to open a channel: %s", err)
 	}
-	defer ch.Close()
 
 	// Declare the queue
 	q, err := ch.QueueDeclare(
@@ -51,13 +48,10 @@ func InitRabbitMq() {
 		log.Fatalf("Failed to register a consumer: %s", err)
 	}
 
-	// Process messages
-	forever := make(chan bool)
-
+	// Process messages in a separate goroutine
 	go func() {
 		for d := range msgs {
 			var jsonString string
-			// Unmarshal message body into a string
 			err := json.Unmarshal(d.Body, &jsonString)
 			if err != nil {
 				log.Printf("Error decoding JSON string: %s", err)
@@ -70,12 +64,21 @@ func InitRabbitMq() {
 			if err != nil {
 				log.Printf("Error decoding TaskRequestDto: %s", err)
 			} else {
-				fmt.Printf("Received a message: %+v\n", task)
+				log.Printf("Received a message: %+v", task)
+
+				// Call CreateTask here
+				errResponse := taskService.CreateTask(context.Background(), &task, 1)
+				if errResponse != nil {
+					log.Printf("Error creating task: %+v", errResponse)
+				} else {
+					log.Println("Task created successfully")
+				}
 			}
 		}
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+	log.Println("RabbitMQ consumer started successfully and waiting for messages.")
 
+	// **Keep the function running** by waiting indefinitely
+	select {} // This prevents the function from exiting
 }
