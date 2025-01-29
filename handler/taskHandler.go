@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"task-golang/config"
 	"task-golang/model"
-	"task-golang/repo"
 	"task-golang/service"
 	"task-golang/util"
 )
@@ -15,16 +14,9 @@ type taskHandler struct {
 	TaskService service.ITaskService
 }
 
-func TaskHandler(router *mux.Router) *mux.Router {
-
+func TaskHandler(router *mux.Router, taskService *service.TaskService) *mux.Router {
 	h := &taskHandler{
-		TaskService: &service.TaskService{
-			TaskRepo:  &repo.TaskRepo{},
-			BoardRepo: &repo.BoardRepo{},
-			UserUtil: &util.UserUtil{
-				UserRepo: &repo.UserRepo{},
-			},
-		},
+		taskService,
 	}
 
 	router.HandleFunc(config.RootPath+"/tasks/{boardId}", h.createTask).Methods("POST")

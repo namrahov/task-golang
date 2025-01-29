@@ -6,19 +6,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"task-golang/model"
-	"task-golang/repo"
 	"task-golang/service"
-	"task-golang/util"
 )
 
-func InitRabbitMq() {
-	taskService := &service.TaskService{
-		TaskRepo:  &repo.TaskRepo{},
-		BoardRepo: &repo.BoardRepo{},
-		UserUtil: &util.UserUtil{
-			UserRepo: &repo.UserRepo{},
-		},
-	}
+func InitRabbitMq(taskService *service.TaskService) {
 	// Connect to RabbitMQ server
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {

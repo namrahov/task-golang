@@ -10,6 +10,7 @@ import (
 	"task-golang/config"
 	_ "task-golang/docs"
 	"task-golang/handler"
+	"task-golang/initializer"
 	"task-golang/middleware"
 	"task-golang/rabbitMq"
 	"task-golang/repo"
@@ -66,24 +67,29 @@ func main() {
 	// Initialize Redis client
 	repo.InitRedis()
 
+	//initialize services
+	userService := initializer.InitUserService()
+	taskService := initializer.InitTaskService()
+	boardService := initializer.InitBoardService()
+
 	// Create a new Gorilla Mux router
 	router := mux.NewRouter()
 
 	// Add middlewares
 	router.Use(mid.Recoverer)
-	router.Use(middleware.AuthMiddleware())
+	router.Use(middleware.AuthMiddleware(userService))
 
 	// sep application-specific handlers by calling the UserHandler function with the router as an argument.
-	handler.UserHandler(router)
-	handler.BoardHandler(router)
-	handler.TaskHandler(router)
+	handler.UserHandler(router, userService)
+	handler.BoardHandler(router, boardService)
+	handler.TaskHandler(router, taskService)
 
 	// Swagger handler
 	config.InitSwagger(router)
 
 	log.Println("Starting server at port:", config.Props.Port)
 
-	go rabbitMq.InitRabbitMq() // Run RabbitMQ consumer in a goroutine
+	go rabbitMq.InitRabbitMq(taskService) // Run RabbitMQ consumer in a goroutine
 
 	// Start the HTTP server
 	log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))

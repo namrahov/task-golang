@@ -8,7 +8,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"task-golang/config"
 	"task-golang/mapper"
 	"task-golang/model"
@@ -22,6 +24,8 @@ type IUserService interface {
 	Active(ctx context.Context, token string) *model.ErrorResponse
 	Authenticate(ctx context.Context, dto *model.AuthRequestDto) (*model.JwtToken, *model.ErrorResponse)
 	Logout(ctx context.Context) *model.ErrorResponse
+	CheckPermission(roles []string, requestURI, httpMethod string) bool
+	ExistByToken(ctx context.Context, token string) bool
 }
 
 type UserService struct {
@@ -338,6 +342,42 @@ func (us *UserService) Logout(ctx context.Context) *model.ErrorResponse {
 	return nil
 }
 
+func (us *UserService) CheckPermission(roles []string, requestURI, httpMethod string) bool {
+	// Ensure roles is not empty to avoid SQL syntax errors
+	if len(roles) == 0 {
+		log.Errorf("Roles slice is empty, cannot check permissions.")
+		return false
+	}
+
+	var permissions []model.Permission
+
+	// Query permissions with GORM
+	err := repo.Db.Table("permissions").
+		Select("permissions.*").
+		Joins("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
+		Joins("JOIN roles r ON r.id = rp.role_id").
+		Where("r.name IN ?", roles).
+		Find(&permissions).Error
+	if err != nil {
+		fmt.Printf("checkPermission err: %v\n", err)
+		log.Errorf("Error fetching permissions: %v", err)
+		return false
+	}
+
+	// Check if the request URI and method match any of the permissions
+	for _, permission := range permissions {
+		if matchPattern(permission.URL, requestURI) && strings.EqualFold(permission.HTTPMethod, httpMethod) {
+			return true
+		}
+	}
+	return false
+}
+
+func (us *UserService) ExistByToken(ctx context.Context, token string) bool {
+	isExist := us.TokenRepo.ExistByToken(ctx, token)
+	return isExist
+}
+
 func stringToInt64(s string) int64 {
 	i, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
@@ -346,4 +386,27 @@ func stringToInt64(s string) int64 {
 	}
 
 	return i
+}
+
+// matchPattern checks if a request URI matches a permission pattern
+func matchPattern(pattern, requestURI string) bool {
+	// Remove query parameters (everything after '?')
+	cleanedRequestURI := strings.Split(requestURI, "?")[0]
+
+	fmt.Println("requestURI=", cleanedRequestURI)
+	// Replace all placeholders in the pattern with a generic regex for non-slash values
+	regexPattern := "^" + regexp.MustCompile(`\{[^/}]+\}`).ReplaceAllString(pattern, `[^/]+`) + "$"
+
+	// Log the generated regex pattern for debugging
+	log.Printf("Generated regex pattern: %s", regexPattern)
+	log.Printf("Cleaned request URI: %s", cleanedRequestURI)
+
+	// Match the cleaned request URI against the compiled regex
+	matched, err := regexp.MatchString(regexPattern, cleanedRequestURI)
+	if err != nil {
+		log.Printf("Error matching pattern: %v", err)
+		return false
+	}
+
+	return matched
 }

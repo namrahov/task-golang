@@ -7,11 +7,10 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"regexp"
 	"strings"
 	"task-golang/config"
 	"task-golang/model"
-	"task-golang/repo"
+	"task-golang/service"
 )
 
 var headers = []string{
@@ -35,7 +34,7 @@ var whitelist = map[string][]string{
 	"POST": {"/v1/users/login", "/v1/users/register"},
 }
 
-func AuthMiddleware() func(http.Handler) http.Handler {
+func AuthMiddleware(userService *service.UserService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("siledi0")
@@ -80,7 +79,7 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 			// Extract Authorization Header
 			authHeader := r.Header.Get("Authorization")
 			fmt.Println("authHeader", authHeader)
-			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") || !existByToken(ctx, authHeader) {
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") || !userService.ExistByToken(ctx, authHeader) {
 				http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
 				return
 			}
@@ -132,7 +131,7 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 			}
 
 			fmt.Println("isledi10", userRoles)
-			hasPermission := checkPermission(userRoles, r.RequestURI, r.Method)
+			hasPermission := userService.CheckPermission(userRoles, r.RequestURI, r.Method)
 			if !hasPermission {
 				http.Error(w, "Forbidden: You do not have access to this resource", http.StatusForbidden)
 				return
@@ -159,37 +158,6 @@ func addLoggerParam(fields log.Fields, field string, value string) {
 	}
 }
 
-func checkPermission(roles []string, requestURI, httpMethod string) bool {
-	// Ensure roles is not empty to avoid SQL syntax errors
-	if len(roles) == 0 {
-		log.Errorf("Roles slice is empty, cannot check permissions.")
-		return false
-	}
-
-	var permissions []model.Permission
-
-	// Query permissions with GORM
-	err := repo.Db.Table("permissions").
-		Select("permissions.*").
-		Joins("JOIN roles_permissions rp ON rp.permission_id = permissions.id").
-		Joins("JOIN roles r ON r.id = rp.role_id").
-		Where("r.name IN ?", roles).
-		Find(&permissions).Error
-	if err != nil {
-		fmt.Printf("checkPermission err: %v\n", err)
-		log.Errorf("Error fetching permissions: %v", err)
-		return false
-	}
-
-	// Check if the request URI and method match any of the permissions
-	for _, permission := range permissions {
-		if matchPattern(permission.URL, requestURI) && strings.EqualFold(permission.HTTPMethod, httpMethod) {
-			return true
-		}
-	}
-	return false
-}
-
 // Helper function to check if the method and URL are in the whitelist
 func isWhitelisted(method, url string) bool {
 	allowedURLs, exists := whitelist[method]
@@ -209,44 +177,4 @@ func isWhitelisted(method, url string) bool {
 		}
 	}
 	return false
-}
-
-// matchPattern checks if a request URI matches a permission pattern
-func matchPattern(pattern, requestURI string) bool {
-	// Remove query parameters (everything after '?')
-	cleanedRequestURI := strings.Split(requestURI, "?")[0]
-
-	fmt.Println("requestURI=", cleanedRequestURI)
-	// Replace all placeholders in the pattern with a generic regex for non-slash values
-	regexPattern := "^" + regexp.MustCompile(`\{[^/}]+\}`).ReplaceAllString(pattern, `[^/]+`) + "$"
-
-	// Log the generated regex pattern for debugging
-	log.Printf("Generated regex pattern: %s", regexPattern)
-	log.Printf("Cleaned request URI: %s", cleanedRequestURI)
-
-	// Match the cleaned request URI against the compiled regex
-	matched, err := regexp.MatchString(regexPattern, cleanedRequestURI)
-	if err != nil {
-		log.Printf("Error matching pattern: %v", err)
-		return false
-	}
-
-	return matched
-}
-
-// ExistByToken checks if a token exists in Redis
-func existByToken(ctx context.Context, token string) bool {
-	// Construct the token index key
-	tokenIndexKey := fmt.Sprintf("tokenIndex:%s", token)
-
-	// Check if the key exists in Redis
-	exists, err := repo.RedisClient.Exists(ctx, tokenIndexKey).Result()
-	if err != nil {
-		_ = fmt.Errorf("error checking if token exists in Redis: %w", err)
-		return false
-	}
-
-	// Redis EXISTS command returns the number of keys that exist (0 or 1 in this case)
-	fmt.Println(exists > 0)
-	return exists > 0
 }

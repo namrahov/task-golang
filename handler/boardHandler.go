@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"task-golang/config"
 	"task-golang/model"
-	"task-golang/repo"
 	"task-golang/service"
 	"task-golang/util"
 )
@@ -16,16 +15,9 @@ type boardHandler struct {
 	BoardService service.IBoardService
 }
 
-func BoardHandler(router *mux.Router) *mux.Router {
-
+func BoardHandler(router *mux.Router, boardService *service.BoardService) *mux.Router {
 	h := &boardHandler{
-		BoardService: &service.BoardService{
-			BoardRepo: &repo.BoardRepo{},
-			UserRepo:  &repo.UserRepo{},
-			UserUtil: &util.UserUtil{
-				UserRepo: &repo.UserRepo{},
-			},
-		},
+		boardService,
 	}
 
 	router.HandleFunc(config.RootPath+"/boards", h.create).Methods("POST")

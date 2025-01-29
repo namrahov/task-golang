@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"task-golang/config"
 	"task-golang/model"
-	"task-golang/repo"
 	"task-golang/service"
 	"task-golang/util"
 	"time"
@@ -17,17 +16,10 @@ type userHandler struct {
 	UserService service.IUserService
 }
 
-func UserHandler(router *mux.Router) *mux.Router {
+func UserHandler(router *mux.Router, userService *service.UserService) *mux.Router {
 
 	h := &userHandler{
-		UserService: &service.UserService{
-			UserRepo:        &repo.UserRepo{},
-			TokenRepo:       &repo.TokenRepo{},
-			PasswordChecker: &util.PasswordChecker{},
-			TokenUtil: &util.TokenUtil{
-				TokenRepo: &repo.TokenRepo{},
-			},
-		},
+		userService,
 	}
 
 	router.HandleFunc(config.RootPath+"/users/login", h.authenticate).Methods("POST")

@@ -18,6 +18,7 @@ type ITokenRepo interface {
 	DeleteToken(ctx context.Context, token *model.Token) error
 	FindTokenByID(ctx context.Context, tokenID string) (*model.Token, error)
 	FindTokenByToken(ctx context.Context, token string) (*model.Token, error)
+	ExistByToken(ctx context.Context, token string) bool
 }
 
 type TokenRepo struct {
@@ -224,4 +225,22 @@ func (tr TokenRepo) FindTokenByToken(ctx context.Context, token string) (*model.
 	}
 
 	return &tokenModel, nil
+}
+
+// ExistByToken checks if a token exists in Redis
+func (tr TokenRepo) ExistByToken(ctx context.Context, token string) bool {
+	// Construct the token index key
+	fmt.Println("nurlann1")
+	tokenIndexKey := fmt.Sprintf("tokenIndex:%s", token)
+	fmt.Println("nurlann2")
+	// Check if the key exists in Redis
+	exists, err := RedisClient.Exists(ctx, tokenIndexKey).Result()
+	if err != nil {
+		_ = fmt.Errorf("error checking if token exists in Redis: %w", err)
+		return false
+	}
+	fmt.Println("nurlann3")
+	// Redis EXISTS command returns the number of keys that exist (0 or 1 in this case)
+	fmt.Println(exists > 0)
+	return exists > 0
 }
