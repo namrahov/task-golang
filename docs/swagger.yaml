@@ -34,6 +34,11 @@ definitions:
       message:
         type: string
     type: object
+  model.FileResponseDto:
+    properties:
+      id:
+        type: integer
+    type: object
   model.JwtToken:
     properties:
       token:
@@ -233,6 +238,42 @@ paths:
       summary: Get user boards
       tags:
       - Boards
+  /v1/files/upload/attachment/{taskId}:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a file as an attachment for a specific task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File uploaded successfully
+          schema:
+            $ref: '#/definitions/model.FileResponseDto'
+        "400":
+          description: Invalid request or file
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload an attachment file
+      tags:
+      - Files
   /v1/tasks/{boardId}:
     post:
       consumes:

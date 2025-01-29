@@ -71,6 +71,7 @@ func main() {
 	userService := initializer.InitUserService()
 	taskService := initializer.InitTaskService()
 	boardService := initializer.InitBoardService()
+	fileService := initializer.InitFileService()
 
 	// Create a new Gorilla Mux router
 	router := mux.NewRouter()
@@ -83,6 +84,7 @@ func main() {
 	handler.UserHandler(router, userService)
 	handler.BoardHandler(router, boardService)
 	handler.TaskHandler(router, taskService)
+	handler.FileHandler(router, fileService)
 
 	// Swagger handler
 	config.InitSwagger(router)

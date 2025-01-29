@@ -9,11 +9,11 @@ type Task struct {
 	Status   Status   `gorm:"column:status" json:"status"`
 
 	// The ID columns:
-	CreatedByID  *int64 `gorm:"column:created_by_id"`  // new field
-	ChangedByID  *int64 `gorm:"column:changed_by_id"`  // new field
-	AssignedByID *int64 `gorm:"column:assigned_by_id"` // new field
-	AssignedToID *int64 `gorm:"column:assigned_to_id"` // new field
-	BoardID      *int64 `gorm:"column:board_id"`       // new field
+	CreatedByID  *int64 `gorm:"column:created_by_id"`
+	ChangedByID  *int64 `gorm:"column:changed_by_id"`
+	AssignedByID *int64 `gorm:"column:assigned_by_id"`
+	AssignedToID *int64 `gorm:"column:assigned_to_id"`
+	BoardID      *int64 `gorm:"column:board_id"`
 
 	// The actual relationship fields:
 	CreatedBy  *User  `gorm:"foreignKey:CreatedByID" json:"createdBy"`
