@@ -6,10 +6,19 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"task-golang/model"
+	"task-golang/repo"
 	"task-golang/service"
+	"task-golang/util"
 )
 
-func InitRabbitMq(taskService *service.TaskService) {
+func InitRabbitMq() {
+	taskService := &service.TaskService{
+		TaskRepo:  &repo.TaskRepo{},
+		BoardRepo: &repo.BoardRepo{},
+		UserUtil: &util.UserUtil{
+			UserRepo: &repo.UserRepo{},
+		},
+	}
 	// Connect to RabbitMQ server
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
@@ -48,6 +57,15 @@ func InitRabbitMq(taskService *service.TaskService) {
 		log.Fatalf("Failed to register a consumer: %s", err)
 	}
 
+	// Create a new logger instance
+	logEntry := log.WithFields(log.Fields{
+		"component": "RabbitMQ",
+		"task":      "taskName",
+	})
+
+	// Create a context with logger and userId
+	ctx := context.WithValue(context.Background(), model.ContextLogger, logEntry)
+	ctx = context.WithValue(ctx, model.ContextUserID, int64(1)) // Set userId manually
 	// Process messages in a separate goroutine
 	go func() {
 		for d := range msgs {
@@ -67,7 +85,7 @@ func InitRabbitMq(taskService *service.TaskService) {
 				log.Printf("Received a message: %+v", task)
 
 				// Call CreateTask here
-				errResponse := taskService.CreateTask(context.Background(), &task, 1)
+				errResponse := taskService.CreateTask(ctx, &task, 1)
 				if errResponse != nil {
 					log.Printf("Error creating task: %+v", errResponse)
 				} else {
