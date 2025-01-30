@@ -117,22 +117,6 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 		}
 	}
 
-	// Handle transaction rollback/commit with deferred function
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback() // Rollback on panic
-			panic(p)
-		} else if tx.Error != nil {
-			_ = tx.Rollback() // Rollback on error
-		} else {
-			err := tx.Commit() // Commit if no error
-			if err != nil {
-				//logger.WithError(err).Error("Transaction commit failed")
-				fmt.Println("Transaction commit failed=", err)
-			}
-		}
-	}()
-
 	taskAttachmentFile, errFind := fs.FileRepo.FindTaskAttachmentFileByAttachmentFileId(attachmentFileId)
 	if errFind != nil {
 		return &model.ErrorResponse{
@@ -160,9 +144,9 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 		}
 	}
 
-	minioClient, err := config.NewMinioClient()
-	if err != nil {
-		log.Fatalf("Failed to initialize Minio client: %v", err)
+	minioClient, errMinioClient := config.NewMinioClient()
+	if errMinioClient != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", errMinioClient)
 	}
 
 	errDelete := util.DeleteFileFromMinio(ctx, taskAttachmentFile.AttachmentFile.FilePath, minioClient)
@@ -173,6 +157,21 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 			Code:    http.StatusForbidden,
 		}
 	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		} else {
+			if errDeleteTask != nil || errDeleteAttachmentFile != nil || errDelete != nil || errMinioClient != nil {
+				_ = tx.Rollback()
+			} else {
+				if err := tx.Commit().Error; err != nil {
+					fmt.Println("Transaction commit failed:", err)
+				}
+			}
+		}
+	}()
 
 	return nil
 }
