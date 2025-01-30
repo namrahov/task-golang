@@ -22,6 +22,7 @@ func FileHandler(router *mux.Router, fileService *service.FileService) *mux.Rout
 
 	router.HandleFunc(config.RootPath+"/files/upload/attachment/{taskId}", h.uploadAttachmentFile).Methods("POST")
 	router.HandleFunc(config.RootPath+"/files/delete/attachment/{attachmentFileId}", h.deleteAttachmentFile).Methods("DELETE")
+	router.HandleFunc(config.RootPath+"/files/download/attachment/{attachmentFileId}", h.downloadAttachmentFile).Methods("GET")
 
 	return router
 }
@@ -109,4 +110,30 @@ func (h *fileHandler) deleteAttachmentFile(w http.ResponseWriter, r *http.Reques
 	// Return the response as JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// @Summary Download an attachment file
+// @Description Downloads an attachment file associated with a specific task
+// @Tags Files
+// @Param attachmentFileId path int true "Attachment File ID"
+// @Success 200 "File downloaded successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or file ID"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/files/download/attachment/{attachmentFileId} [get]
+// @Security BearerAuth
+func (h *fileHandler) downloadAttachmentFile(w http.ResponseWriter, r *http.Request) {
+	// Parse the competition ID from the URL
+	vars := mux.Vars(r)
+	attachmentFileIdStr := vars["attachmentFileId"]
+	attachmentFileId, err := strconv.ParseInt(attachmentFileIdStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		return
+	}
+
+	errDeleteAttachmentFile := h.FileService.DownloadAttachmentFile(r.Context(), attachmentFileId, w)
+	if errDeleteAttachmentFile != nil {
+		util.ErrorRespondWriterJSON(w, errDeleteAttachmentFile)
+		return
+	}
 }

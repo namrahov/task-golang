@@ -223,6 +223,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/files/download/attachment/{attachmentFileId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Downloads an attachment file associated with a specific task",
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Download an attachment file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Attachment File ID",
+                        "name": "attachmentFileId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "File downloaded successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request or file ID",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/files/upload/attachment/{taskId}": {
             "post": {
                 "security": [

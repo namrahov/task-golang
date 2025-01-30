@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 	"task-golang/config"
 	"task-golang/mapper"
 	"task-golang/model"
@@ -17,6 +20,7 @@ import (
 type IFileService interface {
 	UploadAttachmentFile(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
 	DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse
+	DownloadAttachmentFile(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse
 }
 
 type FileService struct {
@@ -172,6 +176,57 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 			}
 		}
 	}()
+
+	return nil
+}
+
+func (fs *FileService) DownloadAttachmentFile(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse {
+	attachmentFile, errFindAttachmentFile := fs.FileRepo.FindAttachmentFileById(attachmentFileId)
+	if errFindAttachmentFile != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-find-attachement-file", model.Exception),
+			Message: errFindAttachmentFile.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	filePath := attachmentFile.FilePath
+	// Extract the object name from the file path
+	objectName := filePath[strings.LastIndex(filePath, "/")+1:]
+
+	minioClient, errMinioClient := config.NewMinioClient()
+	if errMinioClient != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", errMinioClient)
+	}
+	// Download the object from MinIO
+	object, err := minioClient.GetObject(context.Background(), config.Props.MinioBucket, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-get-file-from-minio", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+	defer func(object *minio.Object) {
+		err := object.Close()
+		if err != nil {
+			fmt.Println("cant get object")
+		}
+	}(object)
+
+	// Set the response headers
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", objectName))
+
+	// Stream the file content to the response
+	_, err = io.Copy(w, object)
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-download", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
 
 	return nil
 }

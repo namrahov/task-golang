@@ -11,6 +11,7 @@ type IFileRepo interface {
 	DeleteTaskAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindTaskAttachmentFileByAttachmentFileId(attachmentFileId int64) (*model.TaskAttachmentFile, error)
 	DeleteAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
+	FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error)
 }
 
 type FileRepo struct {
@@ -63,4 +64,16 @@ func (fr *FileRepo) FindTaskAttachmentFileByAttachmentFileId(attachmentFileId in
 	}
 
 	return &taskAttachmentFile, nil
+}
+
+func (fr *FileRepo) FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error) {
+	var attachmentFile model.AttachmentFile // Use the correct type
+
+	// Query the database
+	result := Db.Where("id = ?", attachmentFileId).First(&attachmentFile)
+	if result.Error != nil {
+		return nil, result.Error // Return nil and the error if the query fails
+	}
+
+	return &attachmentFile, nil // Return a pointer to the found record
 }
