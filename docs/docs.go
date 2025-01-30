@@ -183,6 +183,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/files/delete/attachment/{attachmentFileId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes an attachment file associated with a specific task",
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Delete an attachment file",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Attachment File ID",
+                        "name": "attachmentFileId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "File deleted successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request or file ID",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/files/upload/attachment/{taskId}": {
             "post": {
                 "security": [

@@ -16,6 +16,7 @@ import (
 
 type IFileService interface {
 	UploadAttachmentFile(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
+	DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse
 }
 
 type FileService struct {
@@ -103,4 +104,49 @@ func (fs *FileService) UploadAttachmentFile(ctx context.Context, multipartFile *
 
 	logger.Info("ActionLog.UploadAttachmentFile.end")
 	return &model.FileResponseDto{attachmentFile.Id}, nil
+}
+
+func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse {
+	taskAttachmentFile, errFind := fs.FileRepo.FindTaskAttachmentFileByAttachmentFileId(attachmentFileId)
+	if errFind != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-find-task-attachment-file", model.Exception),
+			Message: errFind.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	errDeleteTask := fs.FileRepo.DeleteTaskAttachmentFile(ctx, attachmentFileId)
+	if errDeleteTask != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-delete-task-attachment-file", model.Exception),
+			Message: errDeleteTask.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	errDeleteAttachmentFile := fs.FileRepo.DeleteAttachmentFile(ctx, attachmentFileId)
+	if errDeleteAttachmentFile != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-delete-attachment-file", model.Exception),
+			Message: errDeleteAttachmentFile.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	minioClient, err := config.NewMinioClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", err)
+	}
+	fmt.Println("isledi15")
+	errDelete := util.DeleteFileFromMinio(ctx, taskAttachmentFile.AttachmentFile.FilePath, minioClient)
+	if errDelete != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-delete-file-from-minio", model.Exception),
+			Message: errDelete.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	return nil
 }

@@ -21,6 +21,7 @@ func FileHandler(router *mux.Router, fileService *service.FileService) *mux.Rout
 	}
 
 	router.HandleFunc(config.RootPath+"/files/upload/attachment/{taskId}", h.uploadAttachmentFile).Methods("POST")
+	router.HandleFunc(config.RootPath+"/files/delete/attachment/{attachmentFileId}", h.deleteAttachmentFile).Methods("DELETE")
 
 	return router
 }
@@ -78,4 +79,34 @@ func (h *fileHandler) uploadAttachmentFile(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
+}
+
+// @Summary Delete an attachment file
+// @Description Deletes an attachment file associated with a specific task
+// @Tags Files
+// @Param attachmentFileId path int true "Attachment File ID"
+// @Success 204 "File deleted successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or file ID"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/files/delete/attachment/{attachmentFileId} [delete]
+// @Security BearerAuth
+func (h *fileHandler) deleteAttachmentFile(w http.ResponseWriter, r *http.Request) {
+	// Parse the competition ID from the URL
+	vars := mux.Vars(r)
+	attachmentFileIdStr := vars["attachmentFileId"]
+	attachmentFileId, err := strconv.ParseInt(attachmentFileIdStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		return
+	}
+
+	errDeleteAttachmentFile := h.FileService.DeleteAttachmentFile(r.Context(), attachmentFileId)
+	if errDeleteAttachmentFile != nil {
+		util.ErrorRespondWriterJSON(w, errDeleteAttachmentFile)
+		return
+	}
+
+	// Return the response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNoContent)
 }

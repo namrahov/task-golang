@@ -238,6 +238,31 @@ paths:
       summary: Get user boards
       tags:
       - Boards
+  /v1/files/delete/attachment/{attachmentFileId}:
+    delete:
+      description: Deletes an attachment file associated with a specific task
+      parameters:
+      - description: Attachment File ID
+        in: path
+        name: attachmentFileId
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: File deleted successfully
+        "400":
+          description: Invalid request or file ID
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an attachment file
+      tags:
+      - Files
   /v1/files/upload/attachment/{taskId}:
     post:
       consumes:
