@@ -49,22 +49,6 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 		}
 	}
 
-	// Handle transaction rollback/commit with deferred function
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback() // Rollback on panic
-			panic(p)
-		} else if tx.Error != nil {
-			_ = tx.Rollback() // Rollback on error
-		} else {
-			err := tx.Commit() // Commit if no error
-			if err != nil {
-				//logger.WithError(err).Error("Transaction commit failed")
-				fmt.Println("Transaction commit failed")
-			}
-		}
-	}()
-
 	if !us.PasswordChecker.IsMiddleStrength(dto.Password) {
 		logger.Errorf("ActionLog.Register.error: password is weak")
 		return &model.ErrorResponse{
@@ -128,6 +112,21 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 
 		emailDto := util.GenerateActivationEmail(activationToken, model.Registration)
 		util.SendEmailAsync(emailDto.From, dto.Email, emailDto.Subject, emailDto.Body)
+
+		defer func() {
+			if p := recover(); p != nil {
+				_ = tx.Rollback()
+				panic(p)
+			} else {
+				if errSaveUser != nil || errAddUserRole != nil || errSaveToken != nil {
+					_ = tx.Rollback()
+				} else {
+					if err := tx.Commit().Error; err != nil {
+						fmt.Println("Transaction commit failed:", err)
+					}
+				}
+			}
+		}()
 	} else {
 		if user.IsActive == true {
 			return &model.ErrorResponse{
@@ -145,10 +144,25 @@ func (us *UserService) Register(ctx context.Context, dto *model.UserRegistration
 			}
 		}
 
-		us.TokenUtil.ReSetActivationToken(ctx, user, activationToken)
+		errReSetActivationToken := us.TokenUtil.ReSetActivationToken(ctx, user, activationToken)
 
 		emailDto := util.GenerateActivationEmail(activationToken, model.Registration)
 		util.SendEmailAsync(emailDto.From, dto.Email, emailDto.Subject, emailDto.Body)
+
+		defer func() {
+			if p := recover(); p != nil {
+				_ = tx.Rollback()
+				panic(p)
+			} else {
+				if errReSetActivationToken != nil {
+					_ = tx.Rollback()
+				} else {
+					if err := tx.Commit().Error; err != nil {
+						fmt.Println("Transaction commit failed:", err)
+					}
+				}
+			}
+		}()
 
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.user_is_inactive", model.Exception),

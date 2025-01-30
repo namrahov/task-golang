@@ -15,7 +15,7 @@ import (
 type ITokenUtil interface {
 	GenerateToken() string
 	GenerateSHA(text string) string
-	ReSetActivationToken(ctx context.Context, user *model.User, activationToken string)
+	ReSetActivationToken(ctx context.Context, user *model.User, activationToken string) error
 }
 
 type TokenUtil struct {
@@ -38,19 +38,22 @@ func (tu *TokenUtil) GenerateSHA(text string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-func (tu *TokenUtil) ReSetActivationToken(ctx context.Context, user *model.User, activationToken string) {
+func (tu *TokenUtil) ReSetActivationToken(ctx context.Context, user *model.User, activationToken string) error {
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.Register.start")
 
 	existingToken, errExistingToken := tu.TokenRepo.FindTokenByUserId(ctx, user.Id)
 	if errExistingToken != nil {
 		fmt.Println("reSetActivationToken error=" + errExistingToken.Error())
+		return errExistingToken
 	}
 
 	if existingToken != nil {
-		tu.TokenRepo.DeleteToken(ctx, existingToken)
+		err := tu.TokenRepo.DeleteToken(ctx, existingToken)
 		existingToken.ActivationToken = activationToken
-		tu.TokenRepo.SaveToken(ctx, existingToken)
+		err = tu.TokenRepo.SaveToken(ctx, existingToken)
+
+		return err
 	} else {
 		tokenEntity := &model.Token{
 			ActivationToken: activationToken,
@@ -58,6 +61,7 @@ func (tu *TokenUtil) ReSetActivationToken(ctx context.Context, user *model.User,
 			CreatedAt:       time.Now(),
 			TTL:             600, // 10 min
 		}
-		tu.TokenRepo.SaveToken(ctx, tokenEntity)
+		err := tu.TokenRepo.SaveToken(ctx, tokenEntity)
+		return err
 	}
 }
