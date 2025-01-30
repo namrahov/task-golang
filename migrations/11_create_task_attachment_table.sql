@@ -13,3 +13,6 @@ CREATE TABLE task_attachment_file
     CONSTRAINT fk_task_attachment_file_tasks FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE SET NULL,
     CONSTRAINT fk_task_attachment_file_attachment FOREIGN KEY (attachment_file_id) REFERENCES attachment_file (id) ON DELETE SET NULL
 );
+
+-- Create an index on attachment_file_id
+CREATE INDEX idx_attachment_file_id ON task_attachment_file(attachment_file_id);

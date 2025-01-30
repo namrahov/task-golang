@@ -107,6 +107,32 @@ func (fs *FileService) UploadAttachmentFile(ctx context.Context, multipartFile *
 }
 
 func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse {
+	// Begin GORM transaction
+	tx := repo.BeginTransaction()
+	if tx.Error != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.transaction-begin-failed", model.Exception),
+			Message: tx.Error.Error(),
+			Code:    http.StatusInternalServerError,
+		}
+	}
+
+	// Handle transaction rollback/commit with deferred function
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback() // Rollback on panic
+			panic(p)
+		} else if tx.Error != nil {
+			_ = tx.Rollback() // Rollback on error
+		} else {
+			err := tx.Commit() // Commit if no error
+			if err != nil {
+				//logger.WithError(err).Error("Transaction commit failed")
+				fmt.Println("Transaction commit failed=", err)
+			}
+		}
+	}()
+
 	taskAttachmentFile, errFind := fs.FileRepo.FindTaskAttachmentFileByAttachmentFileId(attachmentFileId)
 	if errFind != nil {
 		return &model.ErrorResponse{
@@ -116,7 +142,7 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 		}
 	}
 
-	errDeleteTask := fs.FileRepo.DeleteTaskAttachmentFile(ctx, attachmentFileId)
+	errDeleteTask := fs.FileRepo.DeleteTaskAttachmentFile(tx, attachmentFileId)
 	if errDeleteTask != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.cant-delete-task-attachment-file", model.Exception),
@@ -125,7 +151,7 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 		}
 	}
 
-	errDeleteAttachmentFile := fs.FileRepo.DeleteAttachmentFile(ctx, attachmentFileId)
+	errDeleteAttachmentFile := fs.FileRepo.DeleteAttachmentFile(tx, attachmentFileId)
 	if errDeleteAttachmentFile != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.cant-delete-attachment-file", model.Exception),
@@ -138,7 +164,7 @@ func (fs *FileService) DeleteAttachmentFile(ctx context.Context, attachmentFileI
 	if err != nil {
 		log.Fatalf("Failed to initialize Minio client: %v", err)
 	}
-	fmt.Println("isledi15")
+
 	errDelete := util.DeleteFileFromMinio(ctx, taskAttachmentFile.AttachmentFile.FilePath, minioClient)
 	if errDelete != nil {
 		return &model.ErrorResponse{
