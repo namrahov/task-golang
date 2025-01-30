@@ -47,3 +47,31 @@ type AttachmentFileDto struct {
 	AttachmentFile AttachmentFile `json:"attachmentFile"`
 	UniqueName     string         `json:"uniqueName"`
 }
+
+type TaskImage struct {
+	Id        int64     `gorm:"primaryKey;column:id" json:"id"`
+	FileType  string    `gorm:"column:file_type" json:"fileType"`
+	FilePath  string    `gorm:"column:file_path" json:"filePath"`
+	FileName  string    `gorm:"column:file_name" json:"fileName"`
+	CreatedAt time.Time `gorm:"column:created_at" json:"-"`
+}
+
+// TableName overrides the default table name
+func (TaskImage) TableName() string {
+	return "task_image"
+}
+
+type TaskTaskImage struct {
+	TaskID      int64 `gorm:"column:task_id;primaryKey;not null"`
+	TaskImageID int64 `gorm:"column:task_image_id;primaryKey;not null"`
+}
+
+// TableName overrides the default table name for GORM
+func (TaskTaskImage) TableName() string {
+	return "task_task_image"
+}
+
+type TaskImageDto struct {
+	TaskImage  TaskImage `json:"taskImage"`
+	UniqueName string    `json:"uniqueName"`
+}

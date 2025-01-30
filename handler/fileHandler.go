@@ -23,6 +23,7 @@ func FileHandler(router *mux.Router, fileService *service.FileService) *mux.Rout
 	router.HandleFunc(config.RootPath+"/files/upload/attachment/{taskId}", h.uploadAttachmentFile).Methods("POST")
 	router.HandleFunc(config.RootPath+"/files/delete/attachment/{attachmentFileId}", h.deleteAttachmentFile).Methods("DELETE")
 	router.HandleFunc(config.RootPath+"/files/download/attachment/{attachmentFileId}", h.downloadAttachmentFile).Methods("GET")
+	router.HandleFunc(config.RootPath+"/files/upload/task-image/{taskId}", h.uploadTaskImage).Methods("POST")
 
 	return router
 }
@@ -136,4 +137,59 @@ func (h *fileHandler) downloadAttachmentFile(w http.ResponseWriter, r *http.Requ
 		util.ErrorRespondWriterJSON(w, errDeleteAttachmentFile)
 		return
 	}
+}
+
+// @Summary Upload an image for a task
+// @Description Uploads an image file associated with a specific task
+// @Tags Files
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param taskId path int true "Task ID"
+// @Param file formData file true "Image file to upload"
+// @Success 201 {object} model.FileResponseDto "File uploaded successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or task ID"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/files/upload/task-image/{taskId} [post]
+// @Security BearerAuth
+func (h *fileHandler) uploadTaskImage(w http.ResponseWriter, r *http.Request) {
+	// Parse the competition ID from the URL
+	vars := mux.Vars(r)
+	taskIDStr := vars["taskId"]
+	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the multipart form
+	err = r.ParseMultipartForm(10 << 20) // 10 MB
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the file from the form data
+	file, multipartFileHeader, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Unable to retrieve file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Log the file name and size (optional)
+	fmt.Printf("Uploaded File: %+v\n", multipartFileHeader.Filename)
+	fmt.Printf("File Size: %+v\n", multipartFileHeader.Size)
+	fmt.Printf("MIME Header: %+v\n", multipartFileHeader.Header)
+
+	// Call the file service to handle the file upload
+	response, errUpload := h.FileService.UploadTaskImage(r.Context(), &file, multipartFileHeader, taskID)
+	if errUpload != nil {
+		util.ErrorRespondWriterJSON(w, errUpload)
+		return
+	}
+
+	// Return the response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
 }

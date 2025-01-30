@@ -7,7 +7,9 @@ import (
 
 type IFileRepo interface {
 	SaveAttachmentFile(attachmentFile model.AttachmentFile) model.AttachmentFile
+	SaveTaskImage(taskImage model.TaskImage) model.TaskImage
 	SaveTaskAttachmentFile(taskAttachmentFile *model.TaskAttachmentFile) error
+	SaveTaskTaskImage(taskTaskImage *model.TaskTaskImage) error
 	DeleteTaskAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindTaskAttachmentFileByAttachmentFileId(attachmentFileId int64) (*model.TaskAttachmentFile, error)
 	DeleteAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
@@ -28,8 +30,27 @@ func (fr *FileRepo) SaveAttachmentFile(attachmentFile model.AttachmentFile) mode
 	return attachmentFile
 }
 
+func (fr *FileRepo) SaveTaskImage(taskImage model.TaskImage) model.TaskImage {
+	result := Db.Create(&taskImage)
+	if result.Error != nil {
+		// Handle the error (you can log it or return an empty file object)
+		panic(result.Error)
+	}
+
+	return taskImage
+}
+
 func (fr *FileRepo) SaveTaskAttachmentFile(taskAttachmentFile *model.TaskAttachmentFile) error {
 	result := Db.Create(taskAttachmentFile)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (fr *FileRepo) SaveTaskTaskImage(taskTaskImage *model.TaskTaskImage) error {
+	result := Db.Create(taskTaskImage)
 	if result.Error != nil {
 		return result.Error
 	}

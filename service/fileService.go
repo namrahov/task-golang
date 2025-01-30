@@ -21,6 +21,7 @@ type IFileService interface {
 	UploadAttachmentFile(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
 	DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse
 	DownloadAttachmentFile(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse
+	UploadTaskImage(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
 }
 
 type FileService struct {
@@ -229,4 +230,79 @@ func (fs *FileService) DownloadAttachmentFile(ctx context.Context, attachmentFil
 	}
 
 	return nil
+}
+
+func (fs *FileService) UploadTaskImage(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse) {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.uploadTaskImage.start")
+
+	// Check if competitionId or multipartFile is nil
+	if taskId <= 0 || multipartFileHeader == nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-continue", model.Exception),
+			Message: "Task ID and file must not be null or empty",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	// Check if file size exceeds limit
+	maxSize, err := strconv.ParseInt(config.Props.AttachmentFileMaxSize, 10, 64)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-continue", model.Exception),
+			Message: "Invalid max file size configuration",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	if multipartFileHeader.Size > maxSize {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-continue", model.Exception),
+			Message: "Image is too large. Maximum size is " + config.Props.AttachmentFileMaxSize + " bytes",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	taskImageDto, errBuildTaskImageDto := mapper.BuildTaskImageDto(multipartFileHeader, config.Props.MinioBucket)
+	if errBuildTaskImageDto != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-build-file", model.Exception),
+			Message: errBuildTaskImageDto.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	taskImage := fs.FileRepo.SaveTaskImage(taskImageDto.TaskImage)
+
+	taskTaskImage := &model.TaskTaskImage{
+		TaskID:      taskId,
+		TaskImageID: taskImage.Id,
+	}
+
+	errSave := fs.FileRepo.SaveTaskTaskImage(taskTaskImage)
+	if errSave != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-save-task-image", model.Exception),
+			Message: errSave.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	// Initialize Minio client
+	minioClient, err := config.NewMinioClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", err)
+	}
+
+	errUploadFileToMinio := util.UploadFileToMinio(ctx, taskImageDto.UniqueName, *multipartFile, multipartFileHeader.Size, minioClient)
+	if errUploadFileToMinio != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-uplaod-to-minio", model.Exception),
+			Message: errUploadFileToMinio.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	logger.Info("ActionLog.uploadTaskImage.end")
+	return &model.FileResponseDto{taskImage.Id}, nil
 }
