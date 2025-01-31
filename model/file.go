@@ -78,3 +78,34 @@ type TaskImageDto struct {
 	TaskImage  TaskImage `json:"taskImage"`
 	UniqueName string    `json:"uniqueName"`
 }
+
+type TaskVideo struct {
+	Id        int64     `gorm:"primaryKey;column:id" json:"id"`
+	FileType  string    `gorm:"column:file_type" json:"fileType"`
+	FilePath  string    `gorm:"column:file_path" json:"filePath"`
+	FileName  string    `gorm:"column:file_name" json:"fileName"`
+	CreatedAt time.Time `gorm:"column:created_at" json:"-"`
+}
+
+// TableName overrides the default table name
+func (TaskVideo) TableName() string {
+	return "task_video"
+}
+
+type TaskTaskVideo struct {
+	TaskID      int64 `gorm:"column:task_id;primaryKey;not null"`
+	TaskVideoID int64 `gorm:"column:task_video_id;primaryKey;not null"`
+
+	Task      *Task      `gorm:"foreignKey:TaskID" json:"task"`
+	TaskVideo *TaskVideo `gorm:"foreignKey:TaskVideoID" json:"taskVideo"`
+}
+
+// TableName overrides the default table name for GORM
+func (TaskTaskVideo) TableName() string {
+	return "task_task_video"
+}
+
+type TaskVideoDto struct {
+	TaskVideo  TaskVideo `json:"taskVideo"`
+	UniqueName string    `json:"uniqueName"`
+}

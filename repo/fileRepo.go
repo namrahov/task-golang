@@ -8,11 +8,14 @@ import (
 type IFileRepo interface {
 	SaveAttachmentFile(attachmentFile model.AttachmentFile) model.AttachmentFile
 	SaveTaskImage(taskImage model.TaskImage) model.TaskImage
+	SaveTaskVideo(taskVideo model.TaskVideo) model.TaskVideo
 	SaveTaskAttachmentFile(taskAttachmentFile *model.TaskAttachmentFile) error
 	SaveTaskTaskImage(taskTaskImage *model.TaskTaskImage) error
+	SaveTaskTaskVideo(taskTaskVideo *model.TaskTaskVideo) error
 	DeleteTaskAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindTaskAttachmentFileByAttachmentFileId(attachmentFileId int64) (*model.TaskAttachmentFile, error)
 	FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImage, error)
+	FindTaskTaskVideoByTaskId(taskId int64) (*model.TaskTaskVideo, error)
 	DeleteAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error)
 }
@@ -41,6 +44,15 @@ func (fr *FileRepo) SaveTaskImage(taskImage model.TaskImage) model.TaskImage {
 	return taskImage
 }
 
+func (fr *FileRepo) SaveTaskVideo(taskVideo model.TaskVideo) model.TaskVideo {
+	result := Db.Create(&taskVideo)
+	if result.Error != nil {
+		panic(result.Error)
+	}
+
+	return taskVideo
+}
+
 func (fr *FileRepo) SaveTaskAttachmentFile(taskAttachmentFile *model.TaskAttachmentFile) error {
 	result := Db.Create(taskAttachmentFile)
 	if result.Error != nil {
@@ -52,6 +64,15 @@ func (fr *FileRepo) SaveTaskAttachmentFile(taskAttachmentFile *model.TaskAttachm
 
 func (fr *FileRepo) SaveTaskTaskImage(taskTaskImage *model.TaskTaskImage) error {
 	result := Db.Create(taskTaskImage)
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}
+
+func (fr *FileRepo) SaveTaskTaskVideo(taskTaskVideo *model.TaskTaskVideo) error {
+	result := Db.Create(taskTaskVideo)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -97,6 +118,17 @@ func (fr *FileRepo) FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImag
 	}
 
 	return &taskTaskImage, nil
+}
+
+func (fr *FileRepo) FindTaskTaskVideoByTaskId(taskId int64) (*model.TaskTaskVideo, error) {
+	var taskTaskVideo model.TaskTaskVideo
+
+	result := Db.Preload("TaskVideo").Where("task_id = ?", taskId).First(&taskTaskVideo)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &taskTaskVideo, nil
 }
 
 func (fr *FileRepo) FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error) {

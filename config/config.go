@@ -30,6 +30,7 @@ type Args struct {
 	UrlHeader             string    `arg:"env:URL_HEADER,required"`
 	MinioBucket           string    `arg:"env:APP_MINIO_BUCKET,required"`
 	AttachmentFileMaxSize string    `arg:"env:ATTACHMENT_FILE_MAX_SIZE,required"`
+	TaskVideoMaxSize      string    `arg:"env:TASK_VIDEO_MAX_SIZE,required"`
 	MinioUrl              string    `arg:"env:APP_MINIO_URL,required"`
 	MinioAccessKey        string    `arg:"env:APP_MINIO_ACCESS_KEY,required"`
 	MinioSecretKey        string    `arg:"env:APP_MINIO_SECRET_KEY,required"`

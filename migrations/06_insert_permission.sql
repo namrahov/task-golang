@@ -9,7 +9,8 @@ values ('/v1/users/logout', 'GET', 'Logout'),
        ('/v1/files/upload/attachment/{taskId}', 'POST', 'Upload attachment file'),
        ('/v1/files/delete/attachment/{attachmentFileId}', 'DELETE', 'Delete attachment file'),
        ('/v1/files/download/attachment/{attachmentFileId}', 'GET', 'Download attachment file'),
-       ('/v1/files/upload/task-image/{taskId}', 'POST', 'Upload task image');
+       ('/v1/files/upload/task-image/{taskId}', 'POST', 'Upload task image'),
+       ('/v1/files/upload/task-video/{taskId}', 'POST', 'Upload task video');
 
 insert into roles_permissions(role_id, permission_id)
 values (1, 1),
@@ -24,4 +25,6 @@ values (1, 1),
        (1, 8),
        (2, 8),
        (1, 9),
-       (2, 9);
+       (2, 9),
+       (1, 10),
+       (2, 10);

@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"task-golang/config"
@@ -22,7 +23,9 @@ type IFileService interface {
 	DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse
 	DownloadAttachmentFile(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse
 	UploadTaskImage(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
-	GetTaskImage(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse
+	UploadTaskVideo(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
+	GetTaskImage(ctx context.Context, taskId int64, w http.ResponseWriter) *model.ErrorResponse
+	StreamTaskVideo(r *http.Request, taskId int64, w http.ResponseWriter) *model.ErrorResponse
 }
 
 type FileService struct {
@@ -308,6 +311,81 @@ func (fs *FileService) UploadTaskImage(ctx context.Context, multipartFile *multi
 	return &model.FileResponseDto{taskImage.Id}, nil
 }
 
+func (fs *FileService) UploadTaskVideo(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse) {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.UploadTaskVideo.start")
+
+	// Check if competitionId or multipartFile is nil
+	if taskId <= 0 || multipartFileHeader == nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-continue", model.Exception),
+			Message: "Task ID and file must not be null or empty",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	// Check if file size exceeds limit 200MB
+	maxSize, err := strconv.ParseInt(config.Props.TaskVideoMaxSize, 10, 64)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-continue", model.Exception),
+			Message: "Invalid max file size configuration",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	if multipartFileHeader.Size > maxSize {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-continue", model.Exception),
+			Message: "Image is too large. Maximum size is " + config.Props.AttachmentFileMaxSize + " bytes",
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	taskVideoDto, errBuildTaskImageDto := mapper.BuildTaskVideoDto(multipartFileHeader, config.Props.MinioBucket)
+	if errBuildTaskImageDto != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-build-file", model.Exception),
+			Message: errBuildTaskImageDto.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	taskVideo := fs.FileRepo.SaveTaskVideo(taskVideoDto.TaskVideo)
+
+	taskTaskVideo := &model.TaskTaskVideo{
+		TaskID:      taskId,
+		TaskVideoID: taskVideo.Id,
+	}
+
+	errSave := fs.FileRepo.SaveTaskTaskVideo(taskTaskVideo)
+	if errSave != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-save-task-video", model.Exception),
+			Message: errSave.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	// Initialize Minio client
+	minioClient, err := config.NewMinioClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", err)
+	}
+
+	errUploadFileToMinio := util.UploadFileToMinio(ctx, taskVideoDto.UniqueName, *multipartFile, multipartFileHeader.Size, minioClient)
+	if errUploadFileToMinio != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-uplaod-to-minio", model.Exception),
+			Message: errUploadFileToMinio.Error(),
+			Code:    http.StatusBadRequest,
+		}
+	}
+
+	logger.Info("ActionLog.UploadTaskVideo.end")
+	return &model.FileResponseDto{taskVideo.Id}, nil
+}
+
 func (fs *FileService) GetTaskImage(ctx context.Context, taskId int64, w http.ResponseWriter) *model.ErrorResponse {
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.GetTaskImage.start")
@@ -370,5 +448,126 @@ func (fs *FileService) GetTaskImage(ctx context.Context, taskId int64, w http.Re
 	}
 
 	logger.Info("ActionLog.GetTaskImage.end")
+	return nil
+}
+
+func (fs *FileService) StreamTaskVideo(r *http.Request, taskId int64, w http.ResponseWriter) *model.ErrorResponse {
+	// Initialize Minio client
+	ctx := r.Context()
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.StreamTaskVideo.start")
+
+	taskTaskVideo, errFindTaskTaskVideo := fs.FileRepo.FindTaskTaskVideoByTaskId(taskId)
+	if errFindTaskTaskVideo != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-find-task-task-video-file", model.Exception),
+			Message: errFindTaskTaskVideo.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	filePath := taskTaskVideo.TaskVideo.FilePath
+
+	minioClient, err := config.NewMinioClient()
+	if err != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", err)
+	}
+
+	// Determine MIME type
+	mimeType := "application/octet-stream"
+	ext := strings.ToLower(filepath.Ext(filePath))
+	if ext == ".mp4" {
+		mimeType = "video/mp4"
+	} else if ext == ".avi" {
+		mimeType = "video/x-msvideo"
+	} else if ext == ".mkv" {
+		mimeType = "video/x-matroska"
+	}
+
+	// Get file size from MinIO
+	fmt.Println("filepath=", filePath)
+	objInfo, err := minioClient.StatObject(r.Context(), config.Props.MinioBucket, filePath, minio.StatObjectOptions{})
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.file-not-found", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+	fileSize := objInfo.Size
+
+	// Set default range
+	var start int64 = 0
+	end := fileSize - 1
+
+	// Parse Range Header
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader != "" && strings.HasPrefix(rangeHeader, "bytes=") {
+		ranges := strings.Split(rangeHeader[6:], "-")
+		start, _ = strconv.ParseInt(ranges[0], 10, 64)
+		if len(ranges) > 1 && ranges[1] != "" {
+			end, _ = strconv.ParseInt(ranges[1], 10, 64)
+		}
+	}
+
+	// Ensure range validity
+	if start > end || start >= fileSize {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.invalid-range", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusRequestedRangeNotSatisfiable,
+		}
+	}
+
+	contentLength := end - start + 1
+
+	// Set response headers
+	w.Header().Set("Content-Type", mimeType)
+	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileSize))
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
+	w.WriteHeader(http.StatusPartialContent)
+
+	// Stream file from MinIO
+	opts := minio.GetObjectOptions{}
+	opts.SetRange(start, end)
+
+	obj, err := minioClient.GetObject(r.Context(), config.Props.MinioBucket, filePath, opts)
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-retrieve-file", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusInternalServerError,
+		}
+	}
+	defer obj.Close()
+
+	// Copy data to response
+	buffer := make([]byte, 8192)
+	for {
+		n, err := obj.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			log.Println("Error reading file:", err)
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.error-streaming-file", model.Exception),
+				Message: err.Error(),
+				Code:    http.StatusInternalServerError,
+			}
+		}
+		_, writeErr := w.Write(buffer[:n])
+		if writeErr != nil {
+			log.Println("Client aborted connection:", writeErr)
+			return &model.ErrorResponse{
+				Error:   fmt.Sprintf("%s.client-aborted-connection", model.Exception),
+				Message: err.Error(),
+				Code:    http.StatusInternalServerError,
+			}
+		}
+	}
+
+	logger.Info("ActionLog.StreamTaskVideo.end")
 	return nil
 }

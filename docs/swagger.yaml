@@ -325,6 +325,43 @@ paths:
       summary: Get task image
       tags:
       - Files
+  /v1/files/stream/task-video/{taskId}:
+    get:
+      consumes:
+      - application/json
+      description: Streams a video file associated with a specific task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - video/mp4
+      - ' video/webm'
+      - ' video/ogg'
+      responses:
+        "200":
+          description: Video file streamed successfully
+          schema:
+            type: file
+        "400":
+          description: Invalid request or task ID
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Video not found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Stream task video
+      tags:
+      - Files
   /v1/files/upload/attachment/{taskId}:
     post:
       consumes:
@@ -395,6 +432,42 @@ paths:
       security:
       - BearerAuth: []
       summary: Upload an image for a task
+      tags:
+      - Files
+  /v1/files/upload/task-video/{taskId}:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Uploads a video file associated with a specific task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      - description: Video file to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File uploaded successfully
+          schema:
+            $ref: '#/definitions/model.FileResponseDto'
+        "400":
+          description: Invalid request or task ID
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload a video for a task
       tags:
       - Files
   /v1/tasks/{boardId}:

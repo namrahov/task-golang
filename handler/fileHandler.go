@@ -25,6 +25,8 @@ func FileHandler(router *mux.Router, fileService *service.FileService) *mux.Rout
 	router.HandleFunc(config.RootPath+"/files/download/attachment/{attachmentFileId}", h.downloadAttachmentFile).Methods("GET")
 	router.HandleFunc(config.RootPath+"/files/upload/task-image/{taskId}", h.uploadTaskImage).Methods("POST")
 	router.HandleFunc(config.RootPath+"/files/get/task-image/{taskId}", h.getTaskImage).Methods("GET")
+	router.HandleFunc(config.RootPath+"/files/stream/task-video/{taskId}", h.streamTaskVideo).Methods("GET")
+	router.HandleFunc(config.RootPath+"/files/upload/task-video/{taskId}", h.uploadTaskVideo).Methods("POST")
 
 	return router
 }
@@ -223,6 +225,89 @@ func (h *fileHandler) getTaskImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//stream video
+// @Summary Stream task video
+// @Description Streams a video file associated with a specific task
+// @Tags Files
+// @Accept json
+// @Produce video/mp4, video/webm, video/ogg
+// @Param taskId path int true "Task ID"
+// @Success 200 {file} binary "Video file streamed successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or task ID"
+// @Failure 404 {object} model.ErrorResponse "Video not found"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/files/stream/task-video/{taskId} [get]
+// @Security BearerAuth
+func (h *fileHandler) streamTaskVideo(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	taskIDStr := vars["taskId"]
+	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	errDeleteAttachmentFile := h.FileService.StreamTaskVideo(r, taskID, w)
+	if errDeleteAttachmentFile != nil {
+		util.ErrorRespondWriterJSON(w, errDeleteAttachmentFile)
+		return
+	}
+}
+
+// @Summary Upload a video for a task
+// @Description Uploads a video file associated with a specific task
+// @Tags Files
+// @Accept multipart/form-data
+// @Produce application/json
+// @Param taskId path int true "Task ID"
+// @Param file formData file true "Video file to upload"
+// @Success 201 {object} model.FileResponseDto "File uploaded successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or task ID"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/files/upload/task-video/{taskId} [post]
+// @Security BearerAuth
+func (h *fileHandler) uploadTaskVideo(w http.ResponseWriter, r *http.Request) {
+	// Parse the competition ID from the URL
+	vars := mux.Vars(r)
+	taskIDStr := vars["taskId"]
+	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the multipart form
+	err = r.ParseMultipartForm(10 << 20) // 10 MB
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the file from the form data
+	file, multipartFileHeader, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Unable to retrieve file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Log the file name and size (optional)
+	fmt.Printf("Uploaded File: %+v\n", multipartFileHeader.Filename)
+	fmt.Printf("File Size: %+v\n", multipartFileHeader.Size)
+	fmt.Printf("MIME Header: %+v\n", multipartFileHeader.Header)
+
+	// Call the file service to handle the file upload
+	response, errUpload := h.FileService.UploadTaskVideo(r.Context(), &file, multipartFileHeader, taskID)
+	if errUpload != nil {
+		util.ErrorRespondWriterJSON(w, errUpload)
+		return
+	}
+
+	// Return the response as JSON
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
 //add these to getTask
 //dovnload excel of tasks

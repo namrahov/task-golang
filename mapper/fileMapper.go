@@ -62,6 +62,31 @@ func BuildTaskImageDto(multipartFileHeader *multipart.FileHeader, minioBucket st
 	}, nil
 }
 
+func BuildTaskVideoDto(multipartFileHeader *multipart.FileHeader, minioBucket string) (*model.TaskVideoDto, error) {
+	// Validate file name
+	originalFilename := sanitizeFileName(multipartFileHeader.Filename)
+	if originalFilename == "" {
+		return nil, fmt.Errorf("invalid file name")
+	}
+
+	// Generate a unique name for the file
+	uniqueName := generateUniqueName(originalFilename)
+
+	filePath := path.Join(minioBucket, uniqueName)
+
+	taskVideo := model.TaskVideo{
+		FileName:  originalFilename,
+		FilePath:  filePath,
+		FileType:  multipartFileHeader.Header.Get("Content-Type"),
+		CreatedAt: time.Now(),
+	}
+
+	return &model.TaskVideoDto{
+		TaskVideo:  taskVideo,
+		UniqueName: uniqueName,
+	}, nil
+}
+
 // RESERVED_NAMES is a set of reserved file names on Windows
 var RESERVED_NAMES = map[string]bool{
 	"CON": true, "PRN": true, "AUX": true, "NUL": true,
