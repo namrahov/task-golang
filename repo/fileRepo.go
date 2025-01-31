@@ -14,8 +14,10 @@ type IFileRepo interface {
 	SaveTaskTaskVideo(taskTaskVideo *model.TaskTaskVideo) error
 	DeleteTaskAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindTaskAttachmentFileByAttachmentFileId(attachmentFileId int64) (*model.TaskAttachmentFile, error)
+	FindTaskAttachmentsFileByTaskId(taskId int64) (*[]model.TaskAttachmentFile, error)
 	FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImage, error)
 	FindTaskTaskVideo(taskVideoId int64) (*model.TaskTaskVideo, error)
+	FindTaskTaskVideosByTaskId(taskId int64) (*[]model.TaskTaskVideo, error)
 	DeleteAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error)
 }
@@ -109,6 +111,17 @@ func (fr *FileRepo) FindTaskAttachmentFileByAttachmentFileId(attachmentFileId in
 	return &taskAttachmentFile, nil
 }
 
+func (fr *FileRepo) FindTaskAttachmentsFileByTaskId(taskId int64) (*[]model.TaskAttachmentFile, error) {
+	var taskAttachmentFiles []model.TaskAttachmentFile
+
+	result := Db.Preload("AttachmentFile").Where("task_id = ?", taskId).Find(&taskAttachmentFiles)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &taskAttachmentFiles, nil
+}
+
 func (fr *FileRepo) FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImage, error) {
 	var taskTaskImage model.TaskTaskImage
 
@@ -129,6 +142,22 @@ func (fr *FileRepo) FindTaskTaskVideo(taskVideoId int64) (*model.TaskTaskVideo, 
 	}
 
 	return &taskTaskVideo, nil
+}
+
+func (r *FileRepo) FindTaskTaskVideosByTaskId(taskId int64) (*[]model.TaskTaskVideo, error) {
+	var taskTaskVideos []model.TaskTaskVideo
+
+	err := Db.
+		Preload("Task").
+		Preload("TaskVideo").
+		Where("task_id = ?", taskId).
+		Find(&taskTaskVideos).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &taskTaskVideos, nil
 }
 
 func (fr *FileRepo) FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error) {

@@ -76,6 +76,18 @@ definitions:
           $ref: '#/definitions/model.Permission'
         type: array
     type: object
+  model.Status:
+    enum:
+    - NOT_STARTED
+    - IN_PROGRESS
+    - READY_FOR_TEST
+    - DONE
+    type: string
+    x-enum-varnames:
+    - NotStarted
+    - InProgress
+    - ReadyForTest
+    - Done
   model.TaskRequestDto:
     properties:
       deadline:
@@ -84,6 +96,39 @@ definitions:
         type: string
       priority:
         $ref: '#/definitions/model.Priority'
+    type: object
+  model.TaskResponseDto:
+    properties:
+      assignedBy:
+        $ref: '#/definitions/model.User'
+      assignedTo:
+        $ref: '#/definitions/model.User'
+      attachmentFileId:
+        items:
+          type: integer
+        type: array
+      board:
+        $ref: '#/definitions/model.Board'
+      changedBy:
+        $ref: '#/definitions/model.User'
+      createdBy:
+        $ref: '#/definitions/model.User'
+      deadline:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      priority:
+        $ref: '#/definitions/model.Priority'
+      status:
+        $ref: '#/definitions/model.Status'
+      taskImageUrl:
+        type: string
+      taskVideoId:
+        items:
+          type: integer
+        type: array
     type: object
   model.User:
     properties:
@@ -331,9 +376,9 @@ paths:
       - application/json
       description: Streams a video file associated with a specific task
       parameters:
-      - description: Task ID
+      - description: Task Video ID
         in: path
-        name: taskId
+        name: taskVideoId
         required: true
         type: integer
       produces:
@@ -505,6 +550,41 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a task
+      tags:
+      - Tasks
+  /v1/tasks/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the details of a specific task by ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task details retrieved successfully
+          schema:
+            $ref: '#/definitions/model.TaskResponseDto'
+        "400":
+          description: Invalid request or task ID
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get task details
       tags:
       - Tasks
   /v1/users/activate:

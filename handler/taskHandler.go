@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -20,6 +21,7 @@ func TaskHandler(router *mux.Router, taskService *service.TaskService) *mux.Rout
 	}
 
 	router.HandleFunc(config.RootPath+"/tasks/{boardId}", h.createTask).Methods("POST")
+	router.HandleFunc(config.RootPath+"/tasks/{id}", h.getTask).Methods("GET")
 
 	return router
 }
@@ -58,4 +60,37 @@ func (h *taskHandler) createTask(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+}
+
+// @Summary Get task details
+// @Description Retrieves the details of a specific task by ID
+// @Tags Tasks
+// @Accept json
+// @Produce application/json
+// @Param id path int true "Task ID"
+// @Success 200 {object} model.TaskResponseDto "Task details retrieved successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or task ID"
+// @Failure 404 {object} model.ErrorResponse "Task not found"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/tasks/{id} [get]
+// @Security BearerAuth
+func (h *taskHandler) getTask(w http.ResponseWriter, r *http.Request) {
+	// Parse the competition ID from the URL
+	vars := mux.Vars(r)
+	taskIDStr := vars["id"]
+	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	task, errGetTask := h.TaskService.GetTask(r.Context(), taskID)
+	if errGetTask != nil {
+		util.ErrorRespondWriterJSON(w, errGetTask)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(task)
 }

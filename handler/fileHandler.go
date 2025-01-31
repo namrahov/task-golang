@@ -230,7 +230,7 @@ func (h *fileHandler) getTaskImage(w http.ResponseWriter, r *http.Request) {
 // @Tags Files
 // @Accept json
 // @Produce video/mp4, video/webm, video/ogg
-// @Param taskId path int true "Task ID"
+// @Param taskVideoId path int true "Task Video ID"
 // @Success 200 {file} binary "Video file streamed successfully"
 // @Failure 400 {object} model.ErrorResponse "Invalid request or task ID"
 // @Failure 404 {object} model.ErrorResponse "Video not found"

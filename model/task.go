@@ -49,3 +49,22 @@ type TaskRequestDto struct {
 	Priority Priority `json:"priority"`
 	Deadline string   `json:"deadline"`
 }
+
+type TaskResponseDto struct {
+	Id       int64    `json:"id"`
+	Name     string   `json:"name"`
+	Priority Priority `json:"priority"`
+	Status   Status   `json:"status"`
+
+	CreatedBy  *User  `json:"createdBy"`
+	ChangedBy  *User  `json:"changedBy"`
+	AssignedBy *User  `json:"assignedBy"`
+	AssignedTo *User  `json:"assignedTo"`
+	Board      *Board `json:"board"`
+
+	Deadline time.Time `json:"deadline"`
+
+	AttachmentFileIds []int64 `json:"attachmentFileId"`
+	TaskVideoId       []int64 `json:"taskVideoId"`
+	TaskImageUrl      string  `json:"taskImageUrl"`
+}

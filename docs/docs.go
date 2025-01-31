@@ -343,8 +343,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Task ID",
-                        "name": "taskId",
+                        "description": "Task Video ID",
+                        "name": "taskVideoId",
                         "in": "path",
                         "required": true
                     }
@@ -590,6 +590,61 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tasks/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves the details of a specific task by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Get task details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Task ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Task details retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/model.TaskResponseDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or task ID",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Task not found",
                         "schema": {
                             "$ref": "#/definitions/model.ErrorResponse"
                         }
@@ -897,6 +952,21 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Status": {
+            "type": "string",
+            "enum": [
+                "NOT_STARTED",
+                "IN_PROGRESS",
+                "READY_FOR_TEST",
+                "DONE"
+            ],
+            "x-enum-varnames": [
+                "NotStarted",
+                "InProgress",
+                "ReadyForTest",
+                "Done"
+            ]
+        },
         "model.TaskRequestDto": {
             "type": "object",
             "properties": {
@@ -908,6 +978,56 @@ const docTemplate = `{
                 },
                 "priority": {
                     "$ref": "#/definitions/model.Priority"
+                }
+            }
+        },
+        "model.TaskResponseDto": {
+            "type": "object",
+            "properties": {
+                "assignedBy": {
+                    "$ref": "#/definitions/model.User"
+                },
+                "assignedTo": {
+                    "$ref": "#/definitions/model.User"
+                },
+                "attachmentFileId": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "board": {
+                    "$ref": "#/definitions/model.Board"
+                },
+                "changedBy": {
+                    "$ref": "#/definitions/model.User"
+                },
+                "createdBy": {
+                    "$ref": "#/definitions/model.User"
+                },
+                "deadline": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "$ref": "#/definitions/model.Priority"
+                },
+                "status": {
+                    "$ref": "#/definitions/model.Status"
+                },
+                "taskImageUrl": {
+                    "type": "string"
+                },
+                "taskVideoId": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },

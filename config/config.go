@@ -35,6 +35,7 @@ type Args struct {
 	MinioAccessKey        string    `arg:"env:APP_MINIO_ACCESS_KEY,required"`
 	MinioSecretKey        string    `arg:"env:APP_MINIO_SECRET_KEY,required"`
 	MinioUseSsl           bool      `arg:"env:APP_MINIO_USE_SSL,required"`
+	BaseUrl               string    `arg:"env:BASE_URL,required"`
 }
 
 var Props Args
