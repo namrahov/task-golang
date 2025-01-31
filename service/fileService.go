@@ -467,6 +467,7 @@ func (fs *FileService) StreamTaskVideo(r *http.Request, taskId int64, w http.Res
 	}
 
 	filePath := taskTaskVideo.TaskVideo.FilePath
+	objectName := filePath[strings.LastIndex(filePath, "/")+1:]
 
 	minioClient, err := config.NewMinioClient()
 	if err != nil {
@@ -475,7 +476,7 @@ func (fs *FileService) StreamTaskVideo(r *http.Request, taskId int64, w http.Res
 
 	// Determine MIME type
 	mimeType := "application/octet-stream"
-	ext := strings.ToLower(filepath.Ext(filePath))
+	ext := strings.ToLower(filepath.Ext(objectName))
 	if ext == ".mp4" {
 		mimeType = "video/mp4"
 	} else if ext == ".avi" {
@@ -485,8 +486,7 @@ func (fs *FileService) StreamTaskVideo(r *http.Request, taskId int64, w http.Res
 	}
 
 	// Get file size from MinIO
-	fmt.Println("filepath=", filePath)
-	objInfo, err := minioClient.StatObject(r.Context(), config.Props.MinioBucket, filePath, minio.StatObjectOptions{})
+	objInfo, err := minioClient.StatObject(ctx, config.Props.MinioBucket, objectName, minio.StatObjectOptions{})
 	if err != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.file-not-found", model.Exception),
@@ -532,7 +532,7 @@ func (fs *FileService) StreamTaskVideo(r *http.Request, taskId int64, w http.Res
 	opts := minio.GetObjectOptions{}
 	opts.SetRange(start, end)
 
-	obj, err := minioClient.GetObject(r.Context(), config.Props.MinioBucket, filePath, opts)
+	obj, err := minioClient.GetObject(ctx, config.Props.MinioBucket, objectName, opts)
 	if err != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.cant-retrieve-file", model.Exception),
