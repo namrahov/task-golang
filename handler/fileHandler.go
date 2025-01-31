@@ -24,6 +24,7 @@ func FileHandler(router *mux.Router, fileService *service.FileService) *mux.Rout
 	router.HandleFunc(config.RootPath+"/files/delete/attachment/{attachmentFileId}", h.deleteAttachmentFile).Methods("DELETE")
 	router.HandleFunc(config.RootPath+"/files/download/attachment/{attachmentFileId}", h.downloadAttachmentFile).Methods("GET")
 	router.HandleFunc(config.RootPath+"/files/upload/task-image/{taskId}", h.uploadTaskImage).Methods("POST")
+	router.HandleFunc(config.RootPath+"/files/get/task-image/{taskId}", h.getTaskImage).Methods("GET")
 
 	return router
 }
@@ -46,7 +47,7 @@ func (h *fileHandler) uploadAttachmentFile(w http.ResponseWriter, r *http.Reques
 	taskIDStr := vars["taskId"]
 	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
 		return
 	}
 
@@ -98,7 +99,7 @@ func (h *fileHandler) deleteAttachmentFile(w http.ResponseWriter, r *http.Reques
 	attachmentFileIdStr := vars["attachmentFileId"]
 	attachmentFileId, err := strconv.ParseInt(attachmentFileIdStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		http.Error(w, "Invalid attachment file ID", http.StatusBadRequest)
 		return
 	}
 
@@ -128,7 +129,7 @@ func (h *fileHandler) downloadAttachmentFile(w http.ResponseWriter, r *http.Requ
 	attachmentFileIdStr := vars["attachmentFileId"]
 	attachmentFileId, err := strconv.ParseInt(attachmentFileIdStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		http.Error(w, "Invalid attachment file ID", http.StatusBadRequest)
 		return
 	}
 
@@ -157,7 +158,7 @@ func (h *fileHandler) uploadTaskImage(w http.ResponseWriter, r *http.Request) {
 	taskIDStr := vars["taskId"]
 	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid competition ID", http.StatusBadRequest)
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
 		return
 	}
 
@@ -193,3 +194,35 @@ func (h *fileHandler) uploadTaskImage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(response)
 }
+
+// @Summary Get task image
+// @Description Retrieves an image file associated with a specific task
+// @Tags Files
+// @Accept json
+// @Produce image/png, image/jpeg, image/webp
+// @Param taskId path int true "Task ID"
+// @Success 200 {file} binary "Image file retrieved successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request or task ID"
+// @Failure 404 {object} model.ErrorResponse "Image not found"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/files/get/task-image/{taskId} [get]
+// @Security BearerAuth
+func (h *fileHandler) getTaskImage(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	taskIDStr := vars["taskId"]
+	taskID, err := strconv.ParseInt(taskIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+
+	errDeleteAttachmentFile := h.FileService.GetTaskImage(r.Context(), taskID, w)
+	if errDeleteAttachmentFile != nil {
+		util.ErrorRespondWriterJSON(w, errDeleteAttachmentFile)
+		return
+	}
+}
+
+//stream video
+//add these to getTask
+//dovnload excel of tasks

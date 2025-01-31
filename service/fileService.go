@@ -22,6 +22,7 @@ type IFileService interface {
 	DeleteAttachmentFile(ctx context.Context, attachmentFileId int64) *model.ErrorResponse
 	DownloadAttachmentFile(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse
 	UploadTaskImage(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
+	GetTaskImage(ctx context.Context, attachmentFileId int64, w http.ResponseWriter) *model.ErrorResponse
 }
 
 type FileService struct {
@@ -305,4 +306,69 @@ func (fs *FileService) UploadTaskImage(ctx context.Context, multipartFile *multi
 
 	logger.Info("ActionLog.uploadTaskImage.end")
 	return &model.FileResponseDto{taskImage.Id}, nil
+}
+
+func (fs *FileService) GetTaskImage(ctx context.Context, taskId int64, w http.ResponseWriter) *model.ErrorResponse {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.GetTaskImage.start")
+
+	taskTaskImage, errFindTaskTaskImage := fs.FileRepo.FindTaskTaskImageByTaskId(taskId)
+	if errFindTaskTaskImage != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-find-task-task-image--file", model.Exception),
+			Message: errFindTaskTaskImage.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	filePath := taskTaskImage.TaskImage.FilePath
+	objectName := filePath[strings.LastIndex(filePath, "/")+1:]
+
+	minioClient, errMinioClient := config.NewMinioClient()
+	if errMinioClient != nil {
+		log.Fatalf("Failed to initialize Minio client: %v", errMinioClient)
+	}
+
+	// Get object from MinIO
+	object, err := minioClient.GetObject(context.Background(), config.Props.MinioBucket, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-get-file-from-minio", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+	defer object.Close()
+
+	// Read a few bytes to detect content type
+	buffer := make([]byte, 512) // Read first 512 bytes for MIME type detection
+	_, err = object.Read(buffer)
+	if err != nil && err != io.EOF {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-read-file-header", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	// Reset object reader since we read some bytes
+	object.Seek(0, io.SeekStart)
+
+	// Detect MIME type
+	contentType := http.DetectContentType(buffer)
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", "inline") // Remove filename to prevent download
+
+	// Stream file to response
+	_, err = io.Copy(w, object)
+	if err != nil {
+		return &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-stream-file", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusForbidden,
+		}
+	}
+
+	logger.Info("ActionLog.GetTaskImage.end")
+	return nil
 }

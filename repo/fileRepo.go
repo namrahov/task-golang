@@ -12,6 +12,7 @@ type IFileRepo interface {
 	SaveTaskTaskImage(taskTaskImage *model.TaskTaskImage) error
 	DeleteTaskAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindTaskAttachmentFileByAttachmentFileId(attachmentFileId int64) (*model.TaskAttachmentFile, error)
+	FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImage, error)
 	DeleteAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error)
 }
@@ -85,6 +86,17 @@ func (fr *FileRepo) FindTaskAttachmentFileByAttachmentFileId(attachmentFileId in
 	}
 
 	return &taskAttachmentFile, nil
+}
+
+func (fr *FileRepo) FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImage, error) {
+	var taskTaskImage model.TaskTaskImage
+
+	result := Db.Preload("TaskImage").Where("task_id = ?", taskId).First(&taskTaskImage)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &taskTaskImage, nil
 }
 
 func (fr *FileRepo) FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error) {

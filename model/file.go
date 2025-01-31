@@ -64,6 +64,9 @@ func (TaskImage) TableName() string {
 type TaskTaskImage struct {
 	TaskID      int64 `gorm:"column:task_id;primaryKey;not null"`
 	TaskImageID int64 `gorm:"column:task_image_id;primaryKey;not null"`
+
+	Task      *Task      `gorm:"foreignKey:TaskID" json:"task"`
+	TaskImage *TaskImage `gorm:"foreignKey:TaskImageID" json:"taskImage"`
 }
 
 // TableName overrides the default table name for GORM

@@ -288,6 +288,43 @@ paths:
       summary: Download an attachment file
       tags:
       - Files
+  /v1/files/get/task-image/{taskId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves an image file associated with a specific task
+      parameters:
+      - description: Task ID
+        in: path
+        name: taskId
+        required: true
+        type: integer
+      produces:
+      - image/png
+      - ' image/jpeg'
+      - ' image/webp'
+      responses:
+        "200":
+          description: Image file retrieved successfully
+          schema:
+            type: file
+        "400":
+          description: Invalid request or task ID
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Image not found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get task image
+      tags:
+      - Files
   /v1/files/upload/attachment/{taskId}:
     post:
       consumes:
