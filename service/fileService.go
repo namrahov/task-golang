@@ -25,7 +25,7 @@ type IFileService interface {
 	UploadTaskImage(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
 	UploadTaskVideo(ctx context.Context, multipartFile *multipart.File, multipartFileHeader *multipart.FileHeader, taskId int64) (*model.FileResponseDto, *model.ErrorResponse)
 	GetTaskImage(ctx context.Context, taskId int64, w http.ResponseWriter) *model.ErrorResponse
-	StreamTaskVideo(r *http.Request, taskId int64, w http.ResponseWriter) *model.ErrorResponse
+	StreamTaskVideo(r *http.Request, taskVideoId int64, w http.ResponseWriter) *model.ErrorResponse
 }
 
 type FileService struct {
@@ -451,13 +451,13 @@ func (fs *FileService) GetTaskImage(ctx context.Context, taskId int64, w http.Re
 	return nil
 }
 
-func (fs *FileService) StreamTaskVideo(r *http.Request, taskId int64, w http.ResponseWriter) *model.ErrorResponse {
+func (fs *FileService) StreamTaskVideo(r *http.Request, taskVideoId int64, w http.ResponseWriter) *model.ErrorResponse {
 	// Initialize Minio client
 	ctx := r.Context()
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.StreamTaskVideo.start")
 
-	taskTaskVideo, errFindTaskTaskVideo := fs.FileRepo.FindTaskTaskVideoByTaskId(taskId)
+	taskTaskVideo, errFindTaskTaskVideo := fs.FileRepo.FindTaskTaskVideo(taskVideoId)
 	if errFindTaskTaskVideo != nil {
 		return &model.ErrorResponse{
 			Error:   fmt.Sprintf("%s.cant-find-task-task-video-file", model.Exception),

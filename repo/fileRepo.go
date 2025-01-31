@@ -15,7 +15,7 @@ type IFileRepo interface {
 	DeleteTaskAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindTaskAttachmentFileByAttachmentFileId(attachmentFileId int64) (*model.TaskAttachmentFile, error)
 	FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImage, error)
-	FindTaskTaskVideoByTaskId(taskId int64) (*model.TaskTaskVideo, error)
+	FindTaskTaskVideo(taskVideoId int64) (*model.TaskTaskVideo, error)
 	DeleteAttachmentFile(tx *gorm.DB, attachmentFileId int64) error
 	FindAttachmentFileById(attachmentFileId int64) (*model.AttachmentFile, error)
 }
@@ -120,10 +120,10 @@ func (fr *FileRepo) FindTaskTaskImageByTaskId(taskId int64) (*model.TaskTaskImag
 	return &taskTaskImage, nil
 }
 
-func (fr *FileRepo) FindTaskTaskVideoByTaskId(taskId int64) (*model.TaskTaskVideo, error) {
+func (fr *FileRepo) FindTaskTaskVideo(taskVideoId int64) (*model.TaskTaskVideo, error) {
 	var taskTaskVideo model.TaskTaskVideo
 
-	result := Db.Preload("TaskVideo").Where("task_id = ?", taskId).First(&taskTaskVideo)
+	result := Db.Preload("TaskVideo").Where("task_video_id = ?", taskVideoId).First(&taskTaskVideo)
 	if result.Error != nil {
 		return nil, result.Error
 	}

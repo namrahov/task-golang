@@ -320,7 +320,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/files/stream/task-video/{taskId}": {
+        "/v1/files/stream/task-video/{taskVideoId}": {
             "get": {
                 "security": [
                     {
