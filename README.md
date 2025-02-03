@@ -5,7 +5,7 @@ This project provides a task management system that allows users to create tasks
 
 ## Technologies Used
 - **Golang** (Backend Development)
-- **PostgreSQL** (Database)
+- **Postgres** (Database)
 - **Redis** (Token Storage)
 - **MinIO** (File Storage)
 - **RabbitMQ** (Message Queue)
@@ -139,5 +139,5 @@ This project provides a task management system that allows users to create tasks
 - The application supports inter-service function calls for seamless data retrieval.
 
 ## License
-This project is open-source and licensed under the MIT License.
+This project is open-source.
 
