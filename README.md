@@ -132,6 +132,7 @@ This project provides a task management system that allows users to create tasks
   ```
   http://localhost:9093/swagger/index.html#
   ```
+- Add Bearer token to the authorize
 
 ## Notes
 - If a user deletes their account and does not reactivate it within 30 days, it is permanently removed.
