@@ -105,7 +105,7 @@ func (h *taskHandler) getTask(w http.ResponseWriter, r *http.Request) {
 // @Param name query string false "Task name filter"
 // @Param priority query string false "Task priority filter"
 // @Param board_id query int false "Board ID to filter tasks"
-// @Param page query int false "Page number for pagination (default: 0)"
+// @Param page query int false "Page number for pagination (default: 1)"
 // @Param count query int false "Number of tasks per page (default: 10)"
 // @Success 200 {object} model.TaskPageResponseDto "Tasks retrieved successfully"
 // @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
@@ -126,7 +126,7 @@ func (h *taskHandler) getTasks(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Received board_id:", boardIDStr)
 
 	// Default pagination values
-	page := 0
+	page := 1
 	count := 10
 	var boardID int64
 
