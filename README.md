@@ -1,5 +1,14 @@
 # Task Board API
 
+## Table of Contents
+
+- [Overview](#Overview)
+- [Technologies Used](#technologies-used)
+- [Features](#features)
+- [Dependencies microservices](#dependencies-microservices)
+- [API Endpoints](#api)
+- [Database ER diagram](#Microservice-database-ERD)
+
 ## Overview
 This project provides a task management system that allows users to create tasks on boards, assign them to users, and manage files associated with tasks. Users can be granted access to boards, retrieve their boards, and upload/download various types of files. The system uses JWT authentication stored in Redis, preventing unauthorized access if the token is not found in Redis. It also integrates RabbitMQ for queue processing and provides API documentation using Swagger.
 
@@ -111,7 +120,7 @@ This project provides a task management system that allows users to create tasks
 ## Swagger Documentation
 - API documentation is available at:
   ```
-  http://localhost:1991/swagger-ui/
+  http://localhost:9093/swagger/index.html#
   ```
 
 ## Notes
@@ -120,5 +129,5 @@ This project provides a task management system that allows users to create tasks
 - The application supports inter-service function calls for seamless data retrieval.
 
 ## License
-This project is open-source and licensed under the MIT License.
+This project is open-source
 
