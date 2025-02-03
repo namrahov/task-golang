@@ -132,12 +132,17 @@ This project provides a task management system that allows users to create tasks
   ```
   http://localhost:9093/swagger/index.html#
   ```
-- Add Bearer token to the authorize
+- Add Bearer token to the authorize:
+- ![Header](docs/auth_header.png)
 
 ## Notes
 - If a user deletes their account and does not reactivate it within 30 days, it is permanently removed.
 - Pagination is supported for relevant endpoints.
 - The application supports inter-service function calls for seamless data retrieval.
+
+Microservice database ERD
+
+![task database architecture](docs/db_schema.png)
 
 ## License
 This project is open-source.
