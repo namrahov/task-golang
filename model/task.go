@@ -68,3 +68,10 @@ type TaskResponseDto struct {
 	TaskVideoId       []int64 `json:"taskVideoId"`
 	TaskImageUrl      string  `json:"taskImageUrl"`
 }
+
+type TaskPageResponseDto struct {
+	Tasks          []*TaskResponseDto `json:"tasks"`
+	HasNextPage    bool               `json:"hasNextPage"`
+	LastPageNumber int64              `json:"lastPageNumber"`
+	TotalCount     int64              `json:"totalCount"`
+}

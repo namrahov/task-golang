@@ -132,7 +132,7 @@ This project provides a task management system that allows users to create tasks
   ```
   http://localhost:9093/swagger/index.html#
   ```
-- Add Bearer token to the authorize:
+- Add Bearer + token to the authorize:
 - ![Header](docs/auth_header.png)
 
 ## Notes

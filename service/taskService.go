@@ -14,6 +14,7 @@ import (
 type ITaskService interface {
 	CreateTask(ctx context.Context, dto *model.TaskRequestDto, boardId int64) *model.ErrorResponse
 	GetTask(ctx context.Context, id int64) (*model.TaskResponseDto, *model.ErrorResponse)
+	GetTasks(ctx context.Context, name string, priority string, boardId int64, page int, count int) (*model.TaskPageResponseDto, *model.ErrorResponse)
 }
 
 type TaskService struct {
@@ -21,6 +22,22 @@ type TaskService struct {
 	BoardRepo repo.IBoardRepo
 	FileRepo  repo.IFileRepo
 	UserUtil  util.IUserUtil
+}
+
+func (ts *TaskService) GetTasks(ctx context.Context, name string, priority string, boardId int64, page int, count int) (*model.TaskPageResponseDto, *model.ErrorResponse) {
+	logger := ctx.Value(model.ContextLogger).(*log.Entry)
+	logger.Info("ActionLog.GetTasks.start")
+	response, err := ts.TaskRepo.GetTasks(name, priority, boardId, page, count)
+	if err != nil {
+		return nil, &model.ErrorResponse{
+			Error:   fmt.Sprintf("%s.cant-get-tasks", model.Exception),
+			Message: err.Error(),
+			Code:    http.StatusNotFound,
+		}
+	}
+
+	logger.Info("ActionLog.GetTasks.end")
+	return response, nil
 }
 
 func (ts *TaskService) CreateTask(ctx context.Context, dto *model.TaskRequestDto, boardId int64) *model.ErrorResponse {

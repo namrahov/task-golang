@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
@@ -21,7 +22,8 @@ func TaskHandler(router *mux.Router, taskService *service.TaskService) *mux.Rout
 	}
 
 	router.HandleFunc(config.RootPath+"/tasks/{boardId}", h.createTask).Methods("POST")
-	router.HandleFunc(config.RootPath+"/tasks/{id}", h.getTask).Methods("GET")
+	router.HandleFunc(config.RootPath+"/tasks/{id:[0-9]+}", h.getTask).Methods("GET")
+	router.HandleFunc(config.RootPath+"/tasks/page", h.getTasks).Methods("GET")
 
 	return router
 }
@@ -93,4 +95,71 @@ func (h *taskHandler) getTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(task)
+}
+
+// @Summary Get list of tasks
+// @Description Retrieves a list of tasks with optional filtering by name, priority, and board ID, with pagination support
+// @Tags Tasks
+// @Accept json
+// @Produce application/json
+// @Param name query string false "Task name filter"
+// @Param priority query string false "Task priority filter"
+// @Param board_id query int false "Board ID to filter tasks"
+// @Param page query int false "Page number for pagination (default: 0)"
+// @Param count query int false "Number of tasks per page (default: 10)"
+// @Success 200 {object} model.TaskPageResponseDto "Tasks retrieved successfully"
+// @Failure 400 {object} model.ErrorResponse "Invalid request parameters"
+// @Failure 500 {object} model.ErrorResponse "Internal server error"
+// @Router /v1/tasks/page [get]
+// @Security BearerAuth
+func (h *taskHandler) getTasks(w http.ResponseWriter, r *http.Request) {
+	// Debugging log to check if the handler is triggered
+	fmt.Println("Handler triggered: getTasks")
+
+	// Extract query parameters
+	name := r.URL.Query().Get("name")
+	priority := r.URL.Query().Get("priority")
+	boardIDStr := r.URL.Query().Get("board_id")
+	pageStr := r.URL.Query().Get("page")
+	countStr := r.URL.Query().Get("count")
+
+	fmt.Println("Received board_id:", boardIDStr)
+
+	// Default pagination values
+	page := 0
+	count := 10
+	var boardID int64
+
+	// Convert board_id to int64 only if it's provided
+	if boardIDStr != "" {
+		var err error
+		boardID, err = strconv.ParseInt(boardIDStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid board ID", http.StatusBadRequest)
+			fmt.Println("Error parsing board_id:", err) // Log error
+			return
+		}
+	}
+
+	// Convert page and count to integers
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+	if l, err := strconv.Atoi(countStr); err == nil && l > 0 {
+		count = l
+	}
+
+	fmt.Printf("Request params: name=%s, priority=%s, boardID=%d, page=%d, count=%d\n", name, priority, boardID, page, count)
+
+	// Fetch tasks
+	response, errGetTasks := h.TaskService.GetTasks(r.Context(), name, priority, boardID, page, count)
+	if errGetTasks != nil {
+		util.ErrorRespondWriterJSON(w, errGetTasks)
+		return
+	}
+
+	// Encode and return JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }
