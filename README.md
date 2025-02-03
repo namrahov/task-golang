@@ -48,10 +48,11 @@ This project provides a task management system that allows users to create tasks
 | GET | `/users/logout` | Logout and remove JWT from Redis |
 
 ### Task Endpoints
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| POST | `/tasks/{boardId}` | Create a task under a board |
-| GET | `/tasks/{id}` | Retrieve task details |
+| Method | Endpoint           | Description                  |
+|--------|--------------------|------------------------------|
+| POST | `/tasks/{boardId}` | Create a task under a board  |
+| GET | `/tasks/{id}`      | Retrieve task details        |
+| GET | `/tasks/page`      | Retrieve tasks as pagination |
 
 ### Board Endpoints
 | Method | Endpoint | Description |
