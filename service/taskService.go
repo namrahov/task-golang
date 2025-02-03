@@ -27,6 +27,7 @@ type TaskService struct {
 func (ts *TaskService) GetTasks(ctx context.Context, name string, priority string, boardId int64, page int, count int) (*model.TaskPageResponseDto, *model.ErrorResponse) {
 	logger := ctx.Value(model.ContextLogger).(*log.Entry)
 	logger.Info("ActionLog.GetTasks.start")
+
 	response, err := ts.TaskRepo.GetTasks(name, priority, boardId, page, count)
 	if err != nil {
 		return nil, &model.ErrorResponse{

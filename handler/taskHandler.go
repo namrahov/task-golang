@@ -113,17 +113,12 @@ func (h *taskHandler) getTask(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/tasks/page [get]
 // @Security BearerAuth
 func (h *taskHandler) getTasks(w http.ResponseWriter, r *http.Request) {
-	// Debugging log to check if the handler is triggered
-	fmt.Println("Handler triggered: getTasks")
-
 	// Extract query parameters
 	name := r.URL.Query().Get("name")
 	priority := r.URL.Query().Get("priority")
 	boardIDStr := r.URL.Query().Get("board_id")
 	pageStr := r.URL.Query().Get("page")
 	countStr := r.URL.Query().Get("count")
-
-	fmt.Println("Received board_id:", boardIDStr)
 
 	// Default pagination values
 	page := 1
@@ -148,8 +143,6 @@ func (h *taskHandler) getTasks(w http.ResponseWriter, r *http.Request) {
 	if l, err := strconv.Atoi(countStr); err == nil && l > 0 {
 		count = l
 	}
-
-	fmt.Printf("Request params: name=%s, priority=%s, boardID=%d, page=%d, count=%d\n", name, priority, boardID, page, count)
 
 	// Fetch tasks
 	response, errGetTasks := h.TaskService.GetTasks(r.Context(), name, priority, boardID, page, count)
