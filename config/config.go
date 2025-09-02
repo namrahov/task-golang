@@ -1,7 +1,10 @@
 package config
 
 import (
+	"time"
+
 	"github.com/alexflint/go-arg"
+	"github.com/segmentio/kafka-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,6 +21,7 @@ type Args struct {
 	LogLevel              log.Level `arg:"env:LOG_LEVEL"`
 	Port                  string    `arg:"env:PORT,required"`
 	Hostname              string    `arg:"env:HOSTNAME,required"`
+	KafkaBootstrap        string    `arg:"env:KAFKA_BOOTSTRAP,required"` // e.g. "localhost:9092"
 	SecretKey             string    `arg:"env:SECRET_KEY,required"`
 	UserFrom              string    `arg:"env:USER_FROM,required"`
 	UserPassword          string    `arg:"env:USER_PASSWORD,required"`
@@ -45,4 +49,35 @@ func LoadConfig() {
 	if err != nil {
 		return
 	}
+}
+
+type StatusConsumer struct {
+	Reader *kafka.Reader
+}
+
+func NewPartitionConsumer(brokers []string, topic string, partition int) *StatusConsumer {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:     brokers,
+		Topic:       topic,
+		Partition:   partition,
+		MinBytes:    1,
+		MaxBytes:    10e6,
+		StartOffset: kafka.FirstOffset, // kafka.FirstOffset or kafka.LastOffset
+		MaxWait:     500 * time.Millisecond,
+	})
+	return &StatusConsumer{Reader: r}
+}
+
+func NewStatusConsumer(brokers []string, topic, groupID string) *StatusConsumer {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        brokers,
+		GroupID:        groupID,
+		Topic:          topic,
+		MinBytes:       1,
+		MaxBytes:       10e6,
+		CommitInterval: 0,                 // manual commit
+		StartOffset:    kafka.FirstOffset, // "earliest" for a NEW group
+		MaxWait:        500 * time.Millisecond,
+	})
+	return &StatusConsumer{Reader: r}
 }
