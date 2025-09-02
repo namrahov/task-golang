@@ -131,6 +131,17 @@ func main() {
 		}
 	}()
 
+	topic2 := "VMS-VESSEL"
+	groupID2 := "status-change-group2"
+
+	sc2 := config.NewStatusConsumer(brokers, topic2, groupID2)
+
+	go func() {
+		if err := appkafka.RunStatusConsumer2(ctx, sc2); err != nil {
+			log.WithError(err).Error("status consumer exited")
+		}
+	}()
+
 	// === Wait for shutdown ===
 	<-ctx.Done()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
