@@ -1,19 +1,25 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"task-golang/config"
+	_ "task-golang/docs"
+	"task-golang/handler"
+	"task-golang/initializer"
+	appkafka "task-golang/kafka" // alias to avoid confusion with segmentio/kafka-go
+	"task-golang/middleware"
+	"task-golang/repo"
+	"time"
+
 	mid "github.com/go-chi/chi/middleware"
 	"github.com/gorilla/mux"
 	"github.com/jessevdk/go-flags"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"task-golang/config"
-	_ "task-golang/docs"
-	"task-golang/handler"
-	"task-golang/initializer"
-	"task-golang/middleware"
-	"task-golang/rabbitmq"
-	"task-golang/repo"
 )
 
 var opts struct {
@@ -90,11 +96,46 @@ func main() {
 	config.InitSwagger(router)
 
 	// Run RabbitMQ consumer in a goroutine
-	go rabbitmq.InitRabbitMq(taskService)
+	//	go rabbitmq.InitRabbitMq(taskService)
 
-	log.Println("Starting server at port:", config.Props.Port)
-	// Start the HTTP server
-	log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))
+	//log.Println("Starting server at port:", config.Props.Port)
+	//// Start the HTTP server
+	//log.Fatal(http.ListenAndServe(":"+config.Props.Port, router))
+
+	// Start HTTP server
+	srv := &http.Server{
+		Addr:    ":" + config.Props.Port,
+		Handler: router,
+	}
+	go func() {
+		log.Println("Starting server at port:", config.Props.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+	}()
+
+	// === Context + graceful shutdown signals ===
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	// === Kafka consumer ===
+	brokers := []string{config.Props.KafkaBootstrap} // or strings.Split(...)
+	topic := "PCS-VESSEL"
+	groupID := "status-change-group"
+
+	sc := config.NewStatusConsumer(brokers, topic, groupID)
+
+	go func() {
+		if err := appkafka.RunStatusConsumer(ctx, sc); err != nil {
+			log.WithError(err).Error("status consumer exited")
+		}
+	}()
+
+	// === Wait for shutdown ===
+	<-ctx.Done()
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = srv.Shutdown(shutdownCtx)
 }
 
 func initLogger() {
