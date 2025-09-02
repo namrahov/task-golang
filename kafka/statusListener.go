@@ -13,7 +13,7 @@ import (
 func RunStatusConsumer(ctx context.Context, c *config.StatusConsumer) error {
 	defer c.Reader.Close()
 	for {
-		m, err := c.Reader.FetchMessage(ctx)
+		m, err := c.Reader.ReadMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil // shutting down

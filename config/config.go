@@ -55,6 +55,19 @@ type StatusConsumer struct {
 	Reader *kafka.Reader
 }
 
+func NewPartitionConsumer(brokers []string, topic string, partition int) *StatusConsumer {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:     brokers,
+		Topic:       topic,
+		Partition:   partition,
+		MinBytes:    1,
+		MaxBytes:    10e6,
+		StartOffset: kafka.FirstOffset, // kafka.FirstOffset or kafka.LastOffset
+		MaxWait:     500 * time.Millisecond,
+	})
+	return &StatusConsumer{Reader: r}
+}
+
 func NewStatusConsumer(brokers []string, topic, groupID string) *StatusConsumer {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        brokers,

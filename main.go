@@ -121,9 +121,8 @@ func main() {
 	// === Kafka consumer ===
 	brokers := []string{config.Props.KafkaBootstrap} // or strings.Split(...)
 	topic := "PCS-VESSEL"
-	groupID := "status-change-group"
 
-	sc := config.NewStatusConsumer(brokers, topic, groupID)
+	sc := config.NewPartitionConsumer(brokers, topic, 2)
 
 	go func() {
 		if err := appkafka.RunStatusConsumer(ctx, sc); err != nil {
